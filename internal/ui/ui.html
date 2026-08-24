@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  HarnezPad launcher UI shell.
+
+  Static assets live alongside this file under internal/ui/ and are embedded
+  via embed.go. Application brand icons are served from /assets/.
+
+  Restart after edits: Ctrl-C, then `go run ./cmd/harnezpad`
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>HarnezPad</title>
+  <link rel="stylesheet" href="/ui/css/app.css">
+</head>
+<body>
+  <div id="app-shell" class="shell">
+    <button
+      id="sidebar-toggle"
+      type="button"
+      class="sidebar-toggle"
+      onclick="toggleAppSidebar()"
+      title="Hide Sidebar"
+      aria-label="Hide Sidebar"
+    >
+      <img src="/ui/sfsymbol/sidebar.left.png?size=20" class="ui-icon" alt="" aria-hidden="true">
+    </button>
+    <aside class="sidebar">
+      <div class="brand">HarnezPad</div>
+      <button id="nav-launch" class="nav active" onclick="showView('launch')">
+        <img src="/ui/sfsymbol/terminal.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+        Launch
+      </button>
+      <button id="nav-models" class="nav" onclick="showView('models')">
+        <img src="/ui/sfsymbol/square.stack.3d.up.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+        Models
+      </button>
+      <button id="nav-keys" class="nav" onclick="showView('keys')">
+        <img src="/ui/sfsymbol/key.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+        Keys
+      </button>
+      <div id="nav-settings-item" class="nav-settings-item">
+        <button id="nav-settings" class="nav nav-settings-main" onclick="showView('settings')">
+          <img src="/ui/sfsymbol/gearshape.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+          Settings
+        </button>
+        <button
+          id="sidebar-update-btn"
+          type="button"
+          class="sidebar-update-btn hidden"
+          onclick="event.stopPropagation(); installPendingUpdate()"
+          title="Install update"
+          aria-label="Install update"
+        >
+          <img src="/ui/sfsymbol/arrow.down.circle.png?size=14" class="ui-icon" alt="" aria-hidden="true">
+        </button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section id="view-launch" class="view">
+        <div class="launch-heading-row">
+          <div class="launch-heading-copy">
+            <h1>Launch</h1>
+            <p class="subtitle">Copy a command and run it in your terminal.</p>
+          </div>
+          <button
+            id="launch-spend-bar"
+            type="button"
+            class="launch-spend-compact hidden"
+            onclick="showView('settings')"
+            aria-label="View account usage in Settings"
+          >
+            <div class="launch-spend-compact-meta">
+              <span id="launch-spend-amount" class="launch-spend-compact-amount"></span>
+              <span id="launch-spend-reset" class="launch-spend-compact-reset"></span>
+            </div>
+            <div class="launch-spend-compact-track" aria-hidden="true">
+              <div id="launch-spend-fill" class="launch-spend-compact-fill"></div>
+            </div>
+          </button>
+        </div>
+        <div id="setup-nudge" class="setup-nudge hidden">
+          <div>
+            <strong>New to HarnezPad?</strong>
+            <span>Connect your management key once, then launch any supported tool.</span>
+          </div>
+          <button class="action" onclick="showView('settings')">
+            <img src="/ui/sfsymbol/arrow.right.circle.png?size=14" class="ui-icon" alt="" aria-hidden="true">
+            Start setup
+          </button>
+        </div>
+        <div class="launch-list">
+          <article class="launcher">
+            <div class="icon codex-app"><img src="/assets/codex-app.png" alt="Codex"></div>
+            <div>
+              <h2>Codex</h2>
+              <p class="description">OpenAI's open-source coding agent</p>
+              <div class="command">
+                <code>harnezpad launch codex</code>
+                <button class="copy" title="Copy command" onclick="copyCommand('harnezpad launch codex', this)">
+                  <img src="/ui/sfsymbol/doc.on.doc.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="launcher">
+            <div class="icon codex"><img src="/assets/codex.svg" alt="ChatGPT"></div>
+            <div>
+              <h2>ChatGPT</h2>
+              <p class="description">Complete work with ChatGPT</p>
+              <div class="command">
+                <code>harnezpad launch chatgpt</code>
+                <button class="copy" title="Copy command" onclick="copyCommand('harnezpad launch chatgpt', this)">
+                  <img src="/ui/sfsymbol/doc.on.doc.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="launcher">
+            <div class="icon"><img src="/assets/claude-code.svg" alt="Claude Code"></div>
+            <div>
+              <h2>Claude Code</h2>
+              <p class="description">Anthropic's coding tool with subagents</p>
+              <div class="command">
+                <code>harnezpad launch claude</code>
+                <button class="copy" title="Copy command" onclick="copyCommand('harnezpad launch claude', this)">
+                  <img src="/ui/sfsymbol/doc.on.doc.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="launcher">
+            <div class="icon opencode"><img src="/assets/opencode.svg" alt="OpenCode"></div>
+            <div>
+              <h2>OpenCode</h2>
+              <p class="description">Anomaly's open-source coding agent</p>
+              <div class="command">
+                <code>harnezpad launch opencode</code>
+                <button class="copy" title="Copy command" onclick="copyCommand('harnezpad launch opencode', this)">
+                  <img src="/ui/sfsymbol/doc.on.doc.png?size=18" class="ui-icon" alt="" aria-hidden="true">
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+        <div id="cli-status" class="cli-note">Checking HarnezPad CLI installation…</div>
+      </section>
+
+      <section id="view-models" class="view hidden">
+        <div class="model-page-main">
+          <h1>Models</h1>
+          <p class="subtitle">Choose a model to see its application launch commands.</p>
+          <div id="model-detail-view" class="model-detail">
+            <h1 id="model-title"></h1>
+            <div id="model-meta" class="model-meta hidden"></div>
+            <div class="application-heading">Applications</div>
+            <div id="model-applications" class="application-list"></div>
+          </div>
+        </div>
+        <aside class="model-sidebar">
+          <div class="model-sidebar-tools">
+            <select id="model-provider-filter" class="model-control" aria-label="Filter by provider" onchange="filterModelCatalog()">
+              <option value="">All providers</option>
+            </select>
+            <div class="model-capability-filters" id="model-capability-filters">
+              <label class="model-filter-chip"><input type="checkbox" value="vision" onchange="filterModelCatalog()"> Vision</label>
+              <label class="model-filter-chip"><input type="checkbox" value="tools" onchange="filterModelCatalog()"> Tools</label>
+              <label class="model-filter-chip"><input type="checkbox" value="reasoning" onchange="filterModelCatalog()"> Reasoning</label>
+              <label class="model-filter-chip"><input type="checkbox" value="web" onchange="filterModelCatalog()"> Web</label>
+            </div>
+            <input
+              id="model-search"
+              type="search"
+              class="model-search"
+              placeholder="Search models…"
+              oninput="filterModelCatalog()"
+              aria-label="Search models"
+            >
+          </div>
+          <div id="model-catalog" class="model-catalog-list"></div>
+        </aside>
+      </section>
+
+      <section id="view-keys" class="view hidden">
+        <div class="keys-page-main">
+          <div class="keys-header">
+            <div>
+              <h1>Keys</h1>
+              <p class="subtitle">Create and manage your Gateway virtual keys.</p>
+            </div>
+            <button id="keys-create-btn" class="action primary" onclick="openCreateKeyModal()">
+              <img src="/ui/sfsymbol/plus.png?size=14" class="ui-icon" alt="" aria-hidden="true">
+              Create key
+            </button>
+          </div>
+          <div id="keys-status" class="keys-status"></div>
+          <div id="keys-list" class="keys-list">
+            <div class="models-loading"><span class="spinner" aria-hidden="true"></span><span>Loading keys…</span></div>
+          </div>
+        </div>
+      </section>
+
+      <div id="keys-modal-backdrop" class="modal-backdrop hidden" onclick="closeKeysModalOnBackdrop(event)">
+        <div class="modal" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+          <div id="keys-modal-content"></div>
+        </div>
+      </div>
+
+      <section id="view-settings" class="view hidden">
+        <h1>Settings</h1>
+        <p class="subtitle">Configure the HarnezPad Gateway.</p>
+        <div class="panel">
+          <h2>Endpoint</h2>
+          <p id="gateway-url" class="endpoint-value">https://gateway.example.com</p>
+          <div class="field">
+            <label>Management key</label>
+            <div id="token-state"></div>
+          </div>
+          <p class="muted-note">
+            Your key is stored securely in the macOS Keychain and is used only for Gateway access.
+
+          </p>
+          <div class="actions">
+            <span id="settings-status" class="status"></span>
+          </div>
+        </div>
+        <div id="account-panel" class="panel account-panel">
+          <h2>Your account</h2>
+          <div id="account-content" class="account-content">
+            <p class="muted-note">Loading account details…</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="setup-screen" class="setup-screen hidden" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <div class="setup-card">
+      <h1 id="setup-title">Welcome to HarnezPad</h1>
+      <p id="setup-subtitle" class="subtitle">Connect your Gateway management key to get started.</p>
+
+      <div class="setup-key-section">
+        <div class="field">
+          <label for="setup-token">Management key</label>
+          <input
+            id="setup-token"
+            type="password"
+            autocomplete="off"
+            placeholder="Paste sk-… management key"
+            autocapitalize="none"
+            spellcheck="false"
+            oninput="handleSetupTokenInput()"
+          >
+        </div>
+        <div id="setup-validation" class="setup-validation hidden" aria-live="polite"></div>
+        <div id="setup-actions" class="actions hidden">
+          <button type="button" class="action primary" onclick="saveSetupToken()">
+            <img src="/ui/sfsymbol/arrow.right.png?size=14" class="ui-icon" alt="" aria-hidden="true">
+            Continue
+          </button>
+        </div>
+      </div>
+
+      <div class="setup-guide panel">
+        <h2>Create your management key</h2>
+        <p>
+          Open the Gateway below, sign in with <strong>SSO</strong>, open <strong>Virtual Keys</strong>,
+          and select <strong>+ Create New Key</strong> with:
+        </p>
+        <p class="setup-gateway-url">
+          <a id="setup-gateway-link" href="https://gateway.example.com/ui/" rel="noopener">
+            <span id="setup-gateway-url">https://gateway.example.com/ui/</span>
+          </a>
+        </p>
+        <ul class="setup-requirements">
+          <li><strong>Name:</strong> <code>management-key</code></li>
+          <li><strong>Key Type:</strong> <strong>Full Access</strong></li>
+        </ul>
+        <figure class="setup-figure">
+          <img
+            src="/docs/images/new-virtual-key.png"
+            alt="Virtual Keys dialog with Name set to management-key and Full Access selected"
+          >
+        </figure>
+        <p class="muted-note">Copy the generated <code>sk-…</code> secret when it appears. It is shown only once.</p>
+      </div>
+
+
+    </div>
+  </div>
+
+  <div id="toast-root" class="toast-root hidden" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/ui/js/app.js" defer></script>
+</body>
+</html>
