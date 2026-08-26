@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
@@ -85,7 +86,7 @@ func RunNativeHelper(parentPID int) error {
 
 func runNativeHelper(parent context.Context, options nativeHelperOptions) error {
 	if options.parentPID <= 1 {
-		return fmt.Errorf("parent PID must be greater than 1")
+		return errors.New("parent PID must be greater than 1")
 	}
 	if !processAlive(options.parentPID) {
 		return fmt.Errorf("parent process %d is not running", options.parentPID)
@@ -339,9 +340,8 @@ func startNativeUpdateEvents(ctx context.Context, updater *update.AppUpdater, ev
 		for {
 			status := updater.Status()
 			encoded, err := json.Marshal(status)
-			if err == nil && !equalBytes(encoded, previous) {
-				copyStatus := status
-				if err := events.write(nativeHelperEvent{Type: "update-status", Status: &copyStatus}); err != nil {
+			if err == nil && !bytes.Equal(encoded, previous) {
+				if err := events.write(nativeHelperEvent{Type: "update-status", Status: &status}); err != nil {
 					logger.Printf("write update status event: %v", err)
 					return
 				}
@@ -354,11 +354,4 @@ func startNativeUpdateEvents(ctx context.Context, updater *update.AppUpdater, ev
 			}
 		}
 	}()
-}
-
-func equalBytes(left, right []byte) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	return subtle.ConstantTimeCompare(left, right) == 1
 }

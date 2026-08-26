@@ -337,33 +337,6 @@
     font-weight: 500;
   }
 
-  .sidebar-help-btn {
-    background: color-mix(in oklab, var(--sidebar-accent) 88%, transparent);
-    color: var(--sidebar-foreground);
-    box-shadow: inset 0 0 0 1px
-      color-mix(in oklab, var(--sidebar-border) 80%, transparent);
-  }
-
-  .sidebar-help-btn:hover {
-    background: var(--sidebar-accent);
-  }
-
-  .sidebar-help-btn.active {
-    background: var(--sidebar-accent);
-    color: var(--sidebar-accent-foreground);
-  }
-
-  .app-footer-help {
-    width: 100% !important;
-    min-width: 0;
-    flex: none;
-    order: 2;
-    padding-inline: 12px;
-    justify-content: flex-start;
-    pointer-events: auto;
-    -webkit-app-region: no-drag;
-  }
-
   .sidebar-update-spinner {
     animation: spin 1s linear infinite;
   }
@@ -391,10 +364,6 @@
   .main-panel.main-panel-settings {
     grid-template-rows: minmax(0, 1fr);
     background: var(--muted);
-  }
-
-  .main-panel-help {
-    grid-template-rows: minmax(0, 1fr);
   }
 
   .app-titlebar {
@@ -490,21 +459,6 @@
     flex: 1;
   }
 
-  .help-host {
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-    width: 100%;
-  }
-
-  .help-frame {
-    display: block;
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: var(--background);
-  }
-
   .page-scroll {
     width: 100%;
     height: 100%;
@@ -512,12 +466,6 @@
 
   .page-scroll-inner {
     padding: 32px;
-  }
-
-  .page-width {
-    width: 100%;
-    max-width: 900px;
-    margin-inline: auto;
   }
 
   .page-wide {
@@ -773,24 +721,6 @@
     text-align: right;
   }
 
-  .application-list {
-    display: grid;
-    gap: 24px;
-  }
-
-  .application-list-item {
-    display: grid;
-    min-width: 0;
-    gap: 10px;
-  }
-
-  .application-identity {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 12px;
-  }
-
   .application-artwork {
     width: 40px;
     height: 40px;
@@ -810,292 +740,26 @@
     background: #fff;
   }
 
-  .application-copy {
-    min-width: 0;
-    flex: 1;
-  }
-
-  .clipboard-row,
-  .application-command {
+  .clipboard-row {
     height: 44px;
     min-width: 0;
     justify-content: space-between;
     padding-inline: 14px;
-  }
-
-  .clipboard-row {
     width: 100%;
   }
 
-  .application-command {
-    margin-left: 52px;
-    width: calc(100% - 52px);
-  }
-
-  .clipboard-row code,
-  .application-command code {
+  .clipboard-row code {
     min-width: 0;
     flex: 1;
     text-align: left;
   }
 
-  .cli-status-line {
-    margin-top: 14px;
-    font-size: 12px;
-    line-height: 1.45;
-    color: var(--muted-foreground);
-  }
-
-  .cli-status-line code {
-    font-size: inherit;
-    color: color-mix(in oklab, var(--foreground) 70%, transparent);
-  }
-
-  .models-layout {
-    display: grid;
-    height: 100%;
-    grid-template-columns: 288px 1px minmax(0, 1fr);
-  }
-
-  .models-browser {
-    position: relative;
-    display: flex;
-    min-width: 0;
-    min-height: 0;
-    flex-direction: column;
-    padding: 16px 12px 0;
-  }
-
-  .models-resize-handle {
-    position: absolute;
-    top: 0;
-    right: -3px;
-    z-index: 2;
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-    touch-action: none;
-  }
-
-  .models-resize-handle::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 2px;
-    width: 1px;
-    background: transparent;
-    transition: background-color 120ms ease;
-  }
-
-  .models-resize-handle:hover::after,
-  .models-resizing .models-resize-handle::after {
-    background: color-mix(in oklab, var(--foreground) 18%, transparent);
-  }
-
-  body.models-resizing {
-    cursor: col-resize;
-    user-select: none;
-  }
-
-  .model-controls {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  .model-controls [data-slot="select-trigger"] {
-    width: 100%;
-  }
-
-  .filter-row {
-    margin: 8px 0 6px;
-  }
-
-  .model-list {
-    min-height: 0;
-    flex: 1;
-  }
-
-  .model-list-inner {
-    display: grid;
-    gap: 2px;
-    padding: 0 0 12px;
-  }
-
-  .model-list-inner.skeleton-stack {
-    gap: 4px;
-  }
-
-  .model-row {
-    position: relative;
-    display: flex;
-    width: 100%;
-    min-width: 0;
-    height: auto;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 6px 8px;
-    text-align: left;
-    white-space: normal;
-  }
-
-  .model-row-id {
-    display: block;
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    padding-right: 5.5rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: left;
-    font-size: 0.8125rem;
-    font-weight: 500;
-  }
-
-  .model-row-provider {
-    position: absolute;
-    top: 50%;
-    right: 8px;
-    max-width: none;
-    overflow: visible;
-    text-overflow: unset;
-    white-space: nowrap;
-    transform: translateY(-50%);
-    font-size: 0.6875rem;
-    font-weight: 400;
-    line-height: 1.35;
-    color: var(--muted-foreground);
-    pointer-events: none;
-  }
-
-  .model-detail-scroll {
-    min-width: 0;
-    height: 100%;
-  }
-
-  .model-detail {
-    display: grid;
-    align-content: start;
-    gap: 16px;
-    padding: 28px 32px 32px;
-  }
-
-  .model-detail-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-  }
-
-  .model-detail-title {
-    display: grid;
-    flex: 1;
-    min-width: 0;
-    justify-items: start;
-    gap: 6px;
-  }
-
-  .model-detail-id {
-    margin: 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    font-size: 1.05rem;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  .capability-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .model-pill {
-    border: none;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
-    text-transform: lowercase;
-  }
-
-  .model-pill-provider {
-    background: oklch(0.94 0.04 200);
-    color: oklch(0.38 0.1 200);
-  }
-
-  .model-pill-capability {
-    background: oklch(0.94 0.03 285);
-    color: oklch(0.42 0.13 285);
-  }
-
-  .dark .model-pill-provider {
-    background: oklch(0.3 0.05 200);
-    color: oklch(0.86 0.05 200);
-  }
-
-  .dark .model-pill-capability {
-    background: oklch(0.3 0.05 285);
-    color: oklch(0.86 0.06 285);
-  }
-
-  .context-metrics {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .context-metrics-compact {
-    flex-shrink: 0;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) - 2px);
-    background: var(--card);
-  }
-
-  .context-metrics-compact > div {
-    display: grid;
-    gap: 3px;
-    padding: 8px 16px;
-    text-align: center;
-  }
-
-  .context-metrics-compact > div + div {
-    border-left: 1px solid var(--border);
-  }
-
-  .context-metrics-compact .setting-hint {
-    font-size: 0.6875rem;
-    line-height: 1.2;
-  }
-
-  .context-metrics-compact strong {
-    font-size: 1.125rem;
-    font-weight: 600;
-    line-height: 1.1;
-  }
-
-  .context-empty {
-    flex-shrink: 0;
-    max-width: 11rem;
-    font-size: 0.75rem;
-    line-height: 1.35;
-    text-align: right;
-  }
-
-  .model-launch-section {
-    display: grid;
-    gap: 12px;
-    min-width: 0;
-  }
-
-  .metric-grid,
   .account-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .metric-grid > div,
   .account-grid > div {
     display: grid;
     gap: 4px;
@@ -1117,10 +781,6 @@
     min-height: 100%;
     align-items: center;
     justify-content: center;
-  }
-
-  .model-picker {
-    max-height: 220px;
   }
 
   .model-picker-list {
@@ -1323,15 +983,8 @@
     gap: 12px;
   }
 
-  .help-loading {
-    display: grid;
-    gap: 14px;
-    padding: 35px;
-  }
-
   @media (max-width: 860px) {
-    .page-scroll-inner,
-    .model-detail {
+    .page-scroll-inner {
       padding: 24px;
     }
   }

@@ -388,7 +388,9 @@ func semverParts(value string) []int {
 	}
 	out := make([]int, 3)
 	for i, part := range parts {
-		part = strings.FieldsFunc(part, func(r rune) bool { return r == '-' || r == '+' })[0]
+		if idx := strings.IndexAny(part, "-+"); idx >= 0 {
+			part = part[:idx]
+		}
 		n, err := strconv.Atoi(part)
 		if err != nil || n < 0 {
 			return nil

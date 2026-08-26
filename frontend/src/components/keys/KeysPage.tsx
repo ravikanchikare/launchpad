@@ -373,12 +373,23 @@ export function KeysPage({
                               {!key.default && (
                                 <DropdownMenuItem
                                   onClick={async () => {
-                                    await client?.keyAction(key.id, "default")
-                                    toast.add({
-                                      title: "Default launch key updated",
-                                      type: "success",
-                                    })
-                                    await reload()
+                                    if (!client) return
+                                    try {
+                                      await client.keyAction(key.id, "default")
+                                      toast.add({
+                                        title: "Default launch key updated",
+                                        type: "success",
+                                      })
+                                      await reload()
+                                    } catch (cause) {
+                                      toast.add({
+                                        title:
+                                          cause instanceof Error
+                                            ? cause.message
+                                            : "Couldn't update default launch key",
+                                        type: "error",
+                                      })
+                                    }
                                   }}
                                 >
                                   Make default

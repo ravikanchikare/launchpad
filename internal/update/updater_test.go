@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -86,6 +87,44 @@ func TestCompareVersions(t *testing.T) {
 	}
 	if CompareVersions("1.1.9", "1.2.0") != -1 {
 		t.Fatal("expected older version")
+	}
+}
+
+func TestSemverParts(t *testing.T) {
+	for _, value := range []string{
+		"",
+		"dev",
+		"1",
+		"1.2",
+		"1..2",
+		"1.2.",
+		".1.2",
+		"v1.x.3",
+		"1.-2.3",
+		"1.2.+3",
+	} {
+		if semverParts(value) != nil {
+			t.Fatalf("expected %q to be rejected", value)
+		}
+	}
+	parts := semverParts(" v1.2.3-rc.1+build.5 ")
+	if parts == nil || parts[0] != 1 || parts[1] != 2 || parts[2] != 3 {
+		t.Fatalf("semverParts( v1.2.3-rc.1+build.5 ) = %v", parts)
+	}
+}
+
+func TestCheckRejectsMalformedServerVersion(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"version":"1..2","url":"https://example.com/harnezpad.zip","sha256":"` + strings.Repeat("ab", 32) + `"}`))
+	}))
+	defer server.Close()
+
+	updater := NewAppUpdater("1.0.0", server.URL)
+	updater.signingSecret = "test-secret"
+	info, err := updater.Check(context.Background())
+	if err == nil || info != nil {
+		t.Fatalf("expected malformed server version to be rejected, got info=%v err=%v", info, err)
 	}
 }
 

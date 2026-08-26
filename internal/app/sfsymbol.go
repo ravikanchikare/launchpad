@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	sfsymbolCache    sync.Map
+	sfsymbolCache     sync.Map
 	sfsymbolPrewarmSz = []int{14, 15, 18, 20}
-	allowedSFSymbols = map[string]struct{}{
+	allowedSFSymbols  = map[string]struct{}{
 		"sidebar.left":        {},
 		"sidebar.leading":     {},
 		"terminal":            {},

@@ -16,17 +16,17 @@ func TestListModelGroups(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"data": []any{
 				map[string]any{
-					"model_group":              "gpt-5.5",
-					"providers":                []string{"openai"},
-					"mode":                     "chat",
-					"max_input_tokens":         1050000.0,
-					"max_output_tokens":        128000.0,
-					"input_cost_per_token":     0.000005,
-					"output_cost_per_token":    0.00003,
-					"supports_vision":          true,
+					"model_group":               "gpt-5.5",
+					"providers":                 []string{"openai"},
+					"mode":                      "chat",
+					"max_input_tokens":          1050000.0,
+					"max_output_tokens":         128000.0,
+					"input_cost_per_token":      0.000005,
+					"output_cost_per_token":     0.00003,
+					"supports_vision":           true,
 					"supports_function_calling": true,
-					"supports_reasoning":       true,
-					"supports_web_search":      true,
+					"supports_reasoning":        true,
+					"supports_web_search":       true,
 				},
 				map[string]any{
 					"model_group": "kimi-k3",

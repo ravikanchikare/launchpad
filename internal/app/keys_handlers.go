@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -73,7 +73,7 @@ func (m *Manager) keySlugByID(ctx context.Context, keyID string) (string, error)
 			return key.Slug, nil
 		}
 	}
-	return "", fmt.Errorf("key not found")
+	return "", errors.New("key not found")
 }
 
 func registerKeysHandlers(mux *http.ServeMux, m *Manager) {

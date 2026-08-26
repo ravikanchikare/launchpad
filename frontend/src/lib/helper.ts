@@ -1,4 +1,4 @@
-import type { AccountSummary, CLIStatus, CreatedKey, KeyCapabilities, KeyListPage, ModelCatalogEntry, Settings, UpdateStatus } from '@/types'
+import type { AccountSummary, CreatedKey, KeyCapabilities, KeyListPage, ModelCatalogEntry, Settings, UpdateStatus } from '@/types'
 
 export class HelperClient {
   private readonly baseUrl: string
@@ -29,7 +29,6 @@ export class HelperClient {
   registerKey = (slug: string, token: string) => this.request<void>('/api/keys/register', { method: 'POST', body: JSON.stringify({ slug, token }) })
   updateKey = (id: string, alias: string, models: string[]) => this.request<void>(`/api/keys/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ alias, models }) })
   keyAction = (id: string, action: 'default' | 'delete' | 'block' | 'unblock') => this.request<void>(`/api/keys/${encodeURIComponent(id)}/${action}`, { method: 'POST' })
-  cliStatus = () => this.request<CLIStatus>('/api/cli-status')
   updateStatus = (check = false) => this.request<UpdateStatus>(`/api/update${check ? '?check=1' : ''}`)
   installUpdate = () => this.request<void>('/api/update/install', { method: 'POST' })
 }

@@ -17,14 +17,10 @@ type Client struct {
 }
 
 func NewClient(baseURL, token string) *Client {
-	client := http.DefaultClient
-	if client == nil {
-		client = &http.Client{}
-	}
 	return &Client{
 		BaseURL: strings.TrimRight(baseURL, "/"),
 		Token:   token,
-		HTTP:    client,
+		HTTP:    http.DefaultClient,
 	}
 }
 
