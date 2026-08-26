@@ -22,7 +22,6 @@ const invoke = async <T>(command: string, payload: unknown = {}): Promise<T> => 
 export const nativeBridge = {
   bootstrap: () => invoke<NativeBootstrap>('harnezpad.bootstrap'),
   toggleSidebar: () => invoke<{ sidebarOpen: boolean }>('harnezpad.sidebar.toggle'),
-  quit: () => invoke('harnezpad.app.quit'),
   updateComplete: () => invoke('harnezpad.update.installComplete'),
   presentUpdateAlert: (title: string, message: string) =>
     invoke<{ accepted: boolean }>('harnezpad.update.alert', { title, message }),

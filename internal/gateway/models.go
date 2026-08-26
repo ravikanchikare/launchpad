@@ -26,18 +26,18 @@ type modelGroupInfoResponse struct {
 }
 
 type rawModelGroup struct {
-	ModelGroup                 string   `json:"model_group"`
-	Providers                  []string `json:"providers"`
-	Mode                       *string  `json:"mode"`
-	MaxInputTokens             *float64 `json:"max_input_tokens"`
-	MaxOutputTokens            *float64 `json:"max_output_tokens"`
-	InputCostPerToken          *float64 `json:"input_cost_per_token"`
-	OutputCostPerToken         *float64 `json:"output_cost_per_token"`
-	SupportsVision             bool     `json:"supports_vision"`
-	SupportsFunctionCalling    bool     `json:"supports_function_calling"`
-	SupportsReasoning          bool     `json:"supports_reasoning"`
-	SupportsWebSearch          bool     `json:"supports_web_search"`
-	HealthStatus               *string  `json:"health_status"`
+	ModelGroup              string   `json:"model_group"`
+	Providers               []string `json:"providers"`
+	Mode                    *string  `json:"mode"`
+	MaxInputTokens          *float64 `json:"max_input_tokens"`
+	MaxOutputTokens         *float64 `json:"max_output_tokens"`
+	InputCostPerToken       *float64 `json:"input_cost_per_token"`
+	OutputCostPerToken      *float64 `json:"output_cost_per_token"`
+	SupportsVision          bool     `json:"supports_vision"`
+	SupportsFunctionCalling bool     `json:"supports_function_calling"`
+	SupportsReasoning       bool     `json:"supports_reasoning"`
+	SupportsWebSearch       bool     `json:"supports_web_search"`
+	HealthStatus            *string  `json:"health_status"`
 }
 
 func (c *Client) ListModelGroups(ctx context.Context) ([]ModelCatalogEntry, error) {
@@ -48,16 +48,16 @@ func (c *Client) ListModelGroups(ctx context.Context) ([]ModelCatalogEntry, erro
 	out := make([]ModelCatalogEntry, 0, len(raw.Data))
 	for _, group := range raw.Data {
 		entry := ModelCatalogEntry{
-			ID:                group.ModelGroup,
-			Providers:         append([]string(nil), group.Providers...),
-			MaxInputTokens:    group.MaxInputTokens,
-			MaxOutputTokens:   group.MaxOutputTokens,
-			InputCostPerToken: group.InputCostPerToken,
+			ID:                 group.ModelGroup,
+			Providers:          append([]string(nil), group.Providers...),
+			MaxInputTokens:     group.MaxInputTokens,
+			MaxOutputTokens:    group.MaxOutputTokens,
+			InputCostPerToken:  group.InputCostPerToken,
 			OutputCostPerToken: group.OutputCostPerToken,
-			SupportsVision:    group.SupportsVision,
-			SupportsTools:     group.SupportsFunctionCalling,
-			SupportsReasoning: group.SupportsReasoning,
-			SupportsWebSearch: group.SupportsWebSearch,
+			SupportsVision:     group.SupportsVision,
+			SupportsTools:      group.SupportsFunctionCalling,
+			SupportsReasoning:  group.SupportsReasoning,
+			SupportsWebSearch:  group.SupportsWebSearch,
 		}
 		if group.Mode != nil {
 			entry.Mode = *group.Mode

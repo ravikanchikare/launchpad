@@ -8,6 +8,5 @@ export interface ModelCatalogEntry { id: string; providers?: string[]; mode?: st
 export interface KeySummary { id: string; alias: string; slug: string; models?: string[]; allModels: boolean; blocked: boolean; spend?: number; maxBudget?: number; active: boolean; management: boolean; default: boolean }
 export interface KeyListPage { keys: KeySummary[]; totalCount: number; currentPage: number; totalPages: number }
 export interface KeyCapabilities { supported: boolean; reason?: string }
-export interface CLIStatus { installed: boolean; path: string; error?: string }
 export interface UpdateStatus { currentVersion?: string; available: boolean; downloaded: boolean; update?: { version: string }; error?: string }
 export interface CreatedKey { key: string; summary: KeySummary }

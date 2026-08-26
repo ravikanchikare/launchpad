@@ -68,7 +68,7 @@ func TestKeysHandlersCreateReturnsSecretOnce(t *testing.T) {
 		t.Fatalf("status = %d body=%s", rec.Code, rec.Body.String())
 	}
 	var out struct {
-		Key     string            `json:"key"`
+		Key     string             `json:"key"`
 		Summary gateway.KeySummary `json:"summary"`
 	}
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {

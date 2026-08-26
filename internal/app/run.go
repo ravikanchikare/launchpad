@@ -28,10 +28,6 @@ func CurrentVersionLabel() string {
 	return label
 }
 
-func BackgroundContext() context.Context {
-	return context.Background()
-}
-
 func CheckForUpdatesFromMenu() {
 	m := Active
 	if m == nil || m.Updater == nil {
@@ -39,7 +35,7 @@ func CheckForUpdatesFromMenu() {
 		return
 	}
 	go func() {
-		info, err := m.Updater.Check(BackgroundContext())
+		info, err := m.Updater.Check(context.Background())
 		if err != nil {
 			platform.ShowNativeUpdateAlert("HarnezPad Updates", UserFacingError(err))
 			return
@@ -48,7 +44,7 @@ func CheckForUpdatesFromMenu() {
 			platform.ShowNativeUpdateAlert("HarnezPad Updates", "HarnezPad is up to date ("+CurrentVersionLabel()+").")
 			return
 		}
-		if err := m.Updater.Download(BackgroundContext(), *info); err != nil {
+		if err := m.Updater.Download(context.Background(), *info); err != nil {
 			platform.ShowNativeUpdateAlert("HarnezPad Updates", "HarnezPad "+info.Version+" is available but could not be downloaded. "+UserFacingError(err))
 			return
 		}
@@ -144,7 +140,6 @@ func RunDesktop() {
 		}
 		log.Printf("HarnezPad update %s is ready; use the update controls to restart", info.Version)
 	})
-	time.Sleep(300 * time.Millisecond)
 	platform.RunNativeWindow(addr, PrewarmSFSymbols)
 
 	cancel()

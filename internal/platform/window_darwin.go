@@ -51,10 +51,6 @@ func scheduleMenuEval(script string) {
 	}(w, script)
 }
 
-func showViewFromMenuEval(script string) {
-	scheduleMenuEval(script)
-}
-
 func openExternalURL(raw string) error {
 	u, err := url.ParseRequestURI(raw)
 	if err != nil || u.Scheme != "https" || u.Host == "" {

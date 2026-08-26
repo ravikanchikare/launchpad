@@ -202,14 +202,14 @@ func (m *Manager) ValidateManagementToken(ctx context.Context, token string) err
 		return errors.New("management key is not configured")
 	}
 	if keys.IsTestInvalidManagementKey(token) {
-		return fmt.Errorf("management key is invalid")
+		return errors.New("management key is invalid")
 	}
 	return gateway.NewClient(m.Settings.GatewayURL, token).ValidateManagementKey(ctx)
 }
 
 func (m *Manager) validateStoredManagementKey(ctx context.Context) error {
 	if keys.IsTestInvalidManagementKey(m.Settings.Token) {
-		return fmt.Errorf("management key is invalid")
+		return errors.New("management key is invalid")
 	}
 	return m.gatewayClient().ValidateManagementKey(ctx)
 }
@@ -406,12 +406,14 @@ func (m *Manager) Start(id, modelOverride string) error {
 		return err
 	}
 	c.Stdin = os.Stdin
-	c.Stdout = m.childOut
-	if c.Stdout == nil {
+	if m.childOut != nil {
+		c.Stdout = m.childOut
+	} else {
 		c.Stdout = os.Stdout
 	}
-	c.Stderr = m.childErr
-	if c.Stderr == nil {
+	if m.childErr != nil {
+		c.Stderr = m.childErr
+	} else {
 		c.Stderr = os.Stderr
 	}
 	if err := c.Start(); err != nil {
@@ -444,10 +446,9 @@ func (m *Manager) Integrations() []Integration {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	ids := []string{"claude", "codex-cli", "codex-desktop", "opencode"}
-	names := []string{"Claude Code", "Codex", "ChatGPT", "OpenCode"}
 	out := make([]Integration, 0, len(ids))
-	for i, id := range ids {
-		v := Integration{ID: id, Name: names[i]}
+	for _, id := range ids {
+		v := Integration{ID: id, Name: IntegrationDisplayName(id)}
 		if p := m.procs[id]; p != nil && p.Process != nil {
 			v.Running = true
 			v.PID = p.Process.Pid

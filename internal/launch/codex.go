@@ -16,9 +16,7 @@ import (
 const (
 	CodexProfileName   = "harnezpad-launch"
 	CodexProfileMarker = "# HARNEZPAD_MANAGED_CODEX_PROFILE"
-	codexProfileName   = CodexProfileName
 	codexProviderName  = "HarnezPad"
-	codexProfileMarker = CodexProfileMarker
 )
 
 func codexHome() (string, error) {
@@ -37,7 +35,7 @@ func codexProfilePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, codexProfileName+".config.toml"), nil
+	return filepath.Join(dir, CodexProfileName+".config.toml"), nil
 }
 
 func codexCatalogPath() (string, error) {
@@ -54,7 +52,7 @@ func Configure(settings GatewaySettings, model string, models []gateway.Model) e
 		return err
 	}
 	if existing, err := os.ReadFile(profilePath); err == nil {
-		if !strings.Contains(string(existing), codexProfileMarker) {
+		if !strings.Contains(string(existing), CodexProfileMarker) {
 			return fmt.Errorf("refusing to overwrite user-owned Codex profile %s", profilePath)
 		}
 	} else if !os.IsNotExist(err) {
@@ -71,11 +69,11 @@ func Configure(settings GatewaySettings, model string, models []gateway.Model) e
 		return err
 	}
 	base := BaseURL(settings)
-	profile := codexProfileMarker + "\n" +
+	profile := CodexProfileMarker + "\n" +
 		"model = " + strconv.Quote(model) + "\n" +
-		"model_provider = " + strconv.Quote(codexProfileName) + "\n" +
+		"model_provider = " + strconv.Quote(CodexProfileName) + "\n" +
 		"model_catalog_json = " + strconv.Quote(catalogPath) + "\n\n" +
-		"[model_providers." + codexProfileName + "]\n" +
+		"[model_providers." + CodexProfileName + "]\n" +
 		"name = " + strconv.Quote(codexProviderName) + "\n" +
 		"base_url = " + strconv.Quote(base) + "\n" +
 		"env_key = \"OPENAI_API_KEY\"\n" +
@@ -89,11 +87,11 @@ func BaseURL(settings GatewaySettings) string {
 
 func ManagedConfigOverrides(settings GatewaySettings, modelCatalogPath string) []string {
 	overrides := []string{
-		fmt.Sprintf("model_provider=%q", codexProfileName),
-		fmt.Sprintf("model_providers.%s.name=%q", codexProfileName, codexProviderName),
-		fmt.Sprintf("model_providers.%s.base_url=%q", codexProfileName, BaseURL(settings)),
-		fmt.Sprintf("model_providers.%s.env_key=%q", codexProfileName, "OPENAI_API_KEY"),
-		fmt.Sprintf("model_providers.%s.wire_api=%q", codexProfileName, "responses"),
+		fmt.Sprintf("model_provider=%q", CodexProfileName),
+		fmt.Sprintf("model_providers.%s.name=%q", CodexProfileName, codexProviderName),
+		fmt.Sprintf("model_providers.%s.base_url=%q", CodexProfileName, BaseURL(settings)),
+		fmt.Sprintf("model_providers.%s.env_key=%q", CodexProfileName, "OPENAI_API_KEY"),
+		fmt.Sprintf("model_providers.%s.wire_api=%q", CodexProfileName, "responses"),
 	}
 	if strings.TrimSpace(modelCatalogPath) != "" {
 		overrides = append(overrides, fmt.Sprintf("model_catalog_json=%q", modelCatalogPath))
@@ -107,7 +105,7 @@ func RestoreCodex() error {
 		return err
 	}
 	if data, readErr := os.ReadFile(profilePath); readErr == nil {
-		if !strings.Contains(string(data), codexProfileMarker) {
+		if !strings.Contains(string(data), CodexProfileMarker) {
 			return fmt.Errorf("refusing to remove user-owned Codex profile %s", profilePath)
 		}
 		if err := os.Remove(profilePath); err != nil {
@@ -131,7 +129,7 @@ func LaunchArgs(settings GatewaySettings, args []string, model string) ([]string
 	if err != nil {
 		return nil, err
 	}
-	launchArgs := []string{"--profile", codexProfileName}
+	launchArgs := []string{"--profile", CodexProfileName}
 	for _, override := range ManagedConfigOverrides(settings, catalogPath) {
 		launchArgs = append(launchArgs, "-c", override)
 	}
@@ -231,7 +229,7 @@ func codexBaseInstructions() string {
 func ownedModelCatalog(data []byte) bool {
 	var catalog struct {
 		HarnezPadManaged bool `json:"harnezpad_managed"`
-		Models       []struct {
+		Models           []struct {
 			Description string `json:"description"`
 		} `json:"models"`
 	}

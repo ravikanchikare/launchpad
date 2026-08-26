@@ -294,9 +294,7 @@ func defaultChatGPTTerminate() error {
 			continue
 		}
 		command := strings.Join(fields[1:], " ")
-		if command != "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT" &&
-			command != "/Applications/Codex.app/Contents/MacOS/Codex" &&
-			!strings.HasSuffix(command, "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT") &&
+		if !strings.HasSuffix(command, "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT") &&
 			!strings.HasSuffix(command, "/Applications/Codex.app/Contents/MacOS/Codex") {
 			continue
 		}
