@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-// These variables are commonly exported by AWS SSO/Bedrock setups. Claude
-// Code can prefer them over the gateway even when ANTHROPIC_BASE_URL is set,
-// so HarnezPad removes them from the child process and explicitly disables the
-// provider switches for a gateway launch.
 var ClaudeProviderEnvironment = []string{
 	"AWS_PROFILE",
 	"AWS_DEFAULT_PROFILE",
@@ -36,17 +32,14 @@ var ClaudeProviderEnvironment = []string{
 	"CLAUDE_CODE_SUBAGENT_MODEL",
 }
 
-// IsolatedChildEnvironment builds the environment assigned to one launched
-// process. It never changes HarnezPad's own environment or the user's shell.
 func IsolatedChildEnvironment(overrides map[string]string, unset []string) []string {
-	removed := make(map[string]struct{}, len(unset))
+	removed := make(map[string]struct{}, len(unset)+len(overrides))
 	for _, key := range unset {
 		removed[key] = struct{}{}
 	}
 	for key := range overrides {
 		removed[key] = struct{}{}
 	}
-
 	env := make([]string, 0, len(os.Environ())+len(overrides))
 	for _, entry := range os.Environ() {
 		key, _, ok := strings.Cut(entry, "=")

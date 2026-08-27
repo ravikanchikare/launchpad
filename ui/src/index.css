@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@theme {
+  --font-sans: ui-sans-system, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  --font-rounded: ui-rounded, "SF Pro Rounded", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+* { font-variant-ligatures: common-ligatures; }

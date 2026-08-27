@@ -5,56 +5,57 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-
-	"harnezpad/internal/gateway"
 )
 
-func TestModelPickerFiltersNavigatesAndSelects(t *testing.T) {
-	picker := newModelPicker("Select model:", []gateway.Model{{ID: "kimi-k3"}, {ID: "claude-sonnet-5"}, {ID: "gpt-5.6-sol"}})
-	updated, _ := picker.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("gpt")})
-	picker = updated.(modelPicker)
-	if len(picker.filtered) != 1 || picker.models[picker.filtered[0]].ID != "gpt-5.6-sol" {
-		t.Fatalf("filtered models = %#v", picker.filtered)
+func TestSelectorArrowFilterAndSelect(t *testing.T) {
+	model := newSelectorModel("Select", []Item{
+		{Name: "claude-opus-5"},
+		{Name: "claude-sonnet-5"},
+		{Name: "gpt-5.6-sol"},
+	})
+	updated, _ := model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	model = updated.(selectorModel)
+	if model.cursor != 1 {
+		t.Fatalf("cursor=%d", model.cursor)
 	}
-	updated, _ = picker.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	picker = updated.(modelPicker)
-	if picker.selected != "gpt-5.6-sol" {
-		t.Fatalf("selected = %q", picker.selected)
+	updated, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("gpt")})
+	model = updated.(selectorModel)
+	if got := model.filteredItems(); len(got) != 1 || got[0].Name != "gpt-5.6-sol" {
+		t.Fatalf("filtered=%#v", got)
 	}
-}
-
-func TestModelPickerBackspaceAndCancel(t *testing.T) {
-	picker := newModelPicker("Select model:", []gateway.Model{{ID: "kimi-k3"}, {ID: "gpt-5.6-sol"}})
-	updated, _ := picker.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("x")})
-	picker = updated.(modelPicker)
-	if len(picker.filtered) != 0 || !strings.Contains(picker.View(), "no matches") {
-		t.Fatalf("expected no matches: %s", picker.View())
-	}
-	updated, _ = picker.Update(tea.KeyMsg{Type: tea.KeyBackspace})
-	picker = updated.(modelPicker)
-	if len(picker.filtered) != 2 {
-		t.Fatalf("backspace did not restore models: %#v", picker.filtered)
-	}
-	updated, _ = picker.Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if !updated.(modelPicker).cancelled {
-		t.Fatal("escape should cancel picker")
+	updated, command := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	model = updated.(selectorModel)
+	if command == nil || model.selected != "gpt-5.6-sol" {
+		t.Fatalf("selected=%q command=%v", model.selected, command)
 	}
 }
 
-func TestRestartConfirmationSelectsNo(t *testing.T) {
-	confirmation := restartConfirmation{}
-	updated, _ := confirmation.Update(tea.KeyMsg{Type: tea.KeyRight})
-	confirmation = updated.(restartConfirmation)
-	updated, _ = confirmation.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	confirmation = updated.(restartConfirmation)
-	if !confirmation.selected || confirmation.choice != 1 {
-		t.Fatalf("confirmation = %#v", confirmation)
+func TestSelectorCancel(t *testing.T) {
+	model := newSelectorModel("Select", []Item{{Name: "model"}})
+	updated, command := model.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	model = updated.(selectorModel)
+	if command == nil || !model.cancelled {
+		t.Fatalf("cancelled=%v command=%v", model.cancelled, command)
 	}
 }
 
-func TestRestartConfirmationEscapeCancels(t *testing.T) {
-	updated, _ := (restartConfirmation{}).Update(tea.KeyMsg{Type: tea.KeyEsc})
-	if !updated.(restartConfirmation).cancelled {
-		t.Fatal("escape should cancel restart confirmation")
+func TestConfirmationNavigationAndLabels(t *testing.T) {
+	model := newConfirmModel("Restart?", ConfirmOptions{
+		YesLabel: "Restart now",
+		NoLabel:  "Later",
+		Default:  ConfirmDefaultYes,
+	})
+	if view := model.View(); !strings.Contains(view, "Restart now") || !strings.Contains(view, "Later") {
+		t.Fatalf("view=%q", view)
+	}
+	updated, _ := model.Update(tea.KeyMsg{Type: tea.KeyRight})
+	model = updated.(confirmModel)
+	if model.yes {
+		t.Fatal("right arrow did not select No")
+	}
+	updated, command := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	model = updated.(confirmModel)
+	if command == nil || !model.confirmed || model.yes {
+		t.Fatalf("confirmed=%v yes=%v command=%v", model.confirmed, model.yes, command)
 	}
 }

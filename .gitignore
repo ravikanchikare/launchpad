@@ -1,68 +1,8 @@
-# --- macOS ---
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
-
-# --- Go ---
-# Local binaries produced by `go build` / `go run`
-/harnezpad
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
-coverage.out
-coverage.html
-*.prof
-/vendor/
-
-# --- macOS app packaging ---
+/launchpad
 /dist/
-*.dmg
-*.pkg
-*.zip
-/tmp/harnezpad-build.*
-
-# --- Native SDK / Zig ---
-/.native/
-/.zig-cache/
-/zig-out/
-/frontend/dist/
-
-# --- Node.js ---
+/tmp/
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-.npm
-.eslintcache
-
-# --- Vercel ---
-.vercel/
-
-# --- Secrets and local env ---
-.env
-.env/
-.env.*
-!.env.example
-!.env/example
-*.pem
-*.p12
-*.key
-*.mobileprovision
-
-*.log
-.cursor/hooks/state/
-
-# --- Editor / IDE (keep shared workspace settings) ---
-.idea/
-*.swp
-*.swo
-*~
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
+*.db
+*.sqlite
+.DS_Store
+ui/tsconfig.tsbuildinfo

@@ -1,52 +1,92 @@
-# HarnezPad
+# Launchpad
 
-HarnezPad is a macOS app that connects your coding agents to your team’s LLM gateway. Launch Claude Code, Codex CLI, ChatGPT, or OpenCode through the `harnezpad` CLI.
+Launchpad connects supported desktop and terminal AI tools to an OpenAI-compatible gateway such as LiteLLM.
 
-![HarnezPad launching ChatGPT, Claude Code, and Codex](assets/screenshots/harnezpad.gif)
+Supported tools:
 
-## Connect your gateway
+- Desktop: Claude Desktop and ChatGPT
+- Terminal: Claude Code, Codex, OpenCode, and Copilot CLI
 
-1. Create a Full Access key in your gateway dashboard.
-2. Open HarnezPad. On first launch — or whenever the key is missing, expired, or invalid — the onboarding dialog asks you to paste it.
-3. You can also paste it later under **Settings → Gateway**. HarnezPad validates it against the gateway, then stores it in the macOS Keychain.
-4. The gateway endpoint is managed in Settings. Models, Keys, and spend load once a valid key is connected.
+## Screenshots
 
-Inference-only keys cannot manage virtual keys. Use a Full Access key.
+### Apps and Claude Desktop configuration
 
-## Use the CLI
+![Apps and Claude Desktop model configuration](docs/screenshots/apps.png)
 
-The packaged app installs `~/.local/bin/harnezpad` on first launch (a symlink to `HarnezPad.app/Contents/Resources/harnezpad`). Put `~/.local/bin` on your `PATH`.
+### Settings
 
-Launch your preferred coding agent:
+![Gateway and application settings](docs/screenshots/settings.png)
 
-```sh
-harnezpad launch claude
-harnezpad launch codex
-harnezpad launch chatgpt
-harnezpad launch opencode
-```
+## Configure
 
-Each command needs the matching app installed (`claude`, `codex`, ChatGPT.app / Codex.app, or `opencode`).
-
-### Choose a model
-
-Pass a gateway model ID with `--model` (IDs are forwarded unchanged):
+Launchpad reads the gateway key from `LITELLM_API_KEY` and does not save it in the settings database.
 
 ```sh
-harnezpad launch claude --model kimi-k3
-harnezpad launch codex --model gpt-5.5
-harnezpad launch chatgpt --model glm-5.2
-harnezpad launch opencode --model claude-sonnet-5
+export LITELLM_API_KEY=...
+launchpad config set-gateway https://gateway.example.com
 ```
 
-When `--model` is omitted, the CLI opens an interactive picker. Type to filter, use the arrow keys, and press Enter to launch.
+Use `LITELLM_BASE_URL` to override the saved gateway URL for one process. The default URL is `http://localhost:4000`.
 
-### Keys and restore
+The command shown in the desktop app defaults to `launchpad`. Change it with:
 
 ```sh
-harnezpad launch claude --key my-dev-key --model kimi-k3
-harnezpad launch chatgpt --restore
-harnezpad launch codex --restore
+launchpad config set-cli-name NAME
 ```
 
-`--key` selects a named Keychain slug. `--restore` undoes ChatGPT desktop routing or the Codex CLI launch profile.
+`LAUNCHPAD_CLI_NAME` overrides the saved name for one process.
+
+## Run the desktop app
+
+Build the UI and launch the app:
+
+```sh
+npm --prefix ui install
+npm --prefix ui run build
+go run .
+```
+
+For Vite hot reload, run these commands in separate terminals:
+
+```sh
+npm --prefix ui run dev
+go run . -dev
+```
+
+Set `LAUNCHPAD_HEADLESS=1` to run the server without opening a window. On macOS, the settings database is stored at `~/Library/Application Support/Launchpad/db.sqlite`.
+
+## Launch a terminal tool
+
+```sh
+launchpad launch claude
+launchpad launch codex
+launchpad launch opencode
+launchpad launch copilot
+launchpad launch chatgpt
+```
+
+Without `--model`, an interactive terminal opens a searchable model picker. It supports arrow keys, Page Up and Page Down, typing to filter, Enter to select, and Escape to cancel.
+
+Pass a model or gateway URL explicitly when needed:
+
+```sh
+launchpad launch claude --model <gateway-model-id>
+launchpad launch claude --gateway-url https://gateway.example.com
+```
+
+ChatGPT configuration requires confirmation and prints a restore command. Use `--yes` only for intentional non-interactive automation:
+
+```sh
+launchpad launch chatgpt --model <gateway-model-id> --yes
+launchpad launch chatgpt --restore --yes
+```
+
+Claude Desktop uses a local compatibility endpoint provided by Launchpad. Keep Launchpad running while using gateway models in Claude Desktop.
+
+## Verify
+
+```sh
+go test -race -timeout 60s ./...
+go vet ./...
+npm --prefix ui run build
+```
