@@ -33,7 +33,7 @@ export async function getLauncherConfig(): Promise<LauncherConfig> {
   return r.json();
 }
 
-export async function updateLauncherConfig(s: Partial<Pick<LauncherConfig, "gatewayUrl" | "cliName">>): Promise<LauncherConfig> {
+export async function updateLauncherConfig(s: Pick<LauncherConfig, "gatewayUrl">): Promise<LauncherConfig> {
   const r = await fetch(`${API_BASE}/api/v1/launcher/config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

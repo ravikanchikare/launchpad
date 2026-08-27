@@ -38,7 +38,7 @@ func Run(ctx context.Context, executable string, args []string, streams IO) (boo
 		fmt.Fprintln(streams.Err, "launchpad:", err)
 		return true, 1
 	}
-	name := config.CLIName(settings, executable)
+	name := config.CLIName()
 	switch args[0] {
 	case "launch":
 		err = runLaunch(ctx, name, executable, settings, args[1:], streams)
@@ -262,7 +262,7 @@ func runConfig(name string, settings config.Settings, args []string, streams IO)
 	if len(args) == 0 || args[0] == "show" {
 		_, keyErr := credentials.Resolve()
 		fmt.Fprintf(streams.Out, "gatewayUrl: %s\ncliName: %s\napiKeyConfigured: %t\n",
-			settings.GatewayURL, config.CLIName(settings, name), keyErr == nil)
+			settings.GatewayURL, config.CLIName(), keyErr == nil)
 		return nil
 	}
 	switch args[0] {
@@ -271,11 +271,6 @@ func runConfig(name string, settings config.Settings, args []string, streams IO)
 			return fmt.Errorf("usage: %s config set-gateway <URL>", name)
 		}
 		settings.GatewayURL = args[1]
-	case "set-cli-name":
-		if len(args) != 2 {
-			return fmt.Errorf("usage: %s config set-cli-name <NAME>", name)
-		}
-		settings.CLIName = args[1]
 	default:
 		return fmt.Errorf("unknown config command %q", args[0])
 	}
@@ -294,11 +289,9 @@ Usage:
   %s launch chatgpt --restore [--yes]
   %s config show
   %s config set-gateway <URL>
-  %s config set-cli-name <NAME>
 
 Environment:
-  LITELLM_API_KEY    Gateway key (preferred over Keychain)
-  LITELLM_BASE_URL   Gateway URL override
-  LAUNCHPAD_CLI_NAME Display name override
-`, name, name, name, name, name, name)
+  LITELLM_API_KEY  Gateway key (preferred over Keychain)
+  LITELLM_BASE_URL Gateway URL override
+`, name, name, name, name, name)
 }

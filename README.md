@@ -28,13 +28,14 @@ launchpad config set-gateway https://gateway.example.com
 
 Use `LITELLM_BASE_URL` to override the saved gateway URL for one process. The default URL is `http://localhost:4000`.
 
-The command shown in the desktop app defaults to `launchpad`. Change it with:
+Set the permanent CLI name when compiling the application. The `-X` value controls names shown in help, restore instructions, and the desktop app; `-o` gives the binary the same name:
 
 ```sh
-launchpad config set-cli-name NAME
+CLI_NAME=my-launcher
+go build -ldflags "-X launchpad/internal/config.DefaultCLIName=$CLI_NAME" -o "$CLI_NAME" .
 ```
 
-`LAUNCHPAD_CLI_NAME` overrides the saved name for one process.
+Without these build flags, the CLI name is `launchpad`.
 
 ## Run the desktop app
 

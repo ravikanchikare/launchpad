@@ -41,7 +41,7 @@ func (r Runner) command(ctx context.Context, integration, model string, args []s
 	gatewayRoot := strings.TrimRight(r.GatewayURL, "/")
 	openAIBase := gatewayRoot + "/v1"
 	overrides := map[string]string{"LAUNCHPAD_MODEL": model}
-	unset := append([]string{"LITELLM_API_KEY", "LITELLM_BASE_URL", "LAUNCHPAD_CLI_NAME"}, ClaudeProviderEnvironment...)
+	unset := append([]string{"LITELLM_API_KEY", "LITELLM_BASE_URL"}, ClaudeProviderEnvironment...)
 	var cmd *exec.Cmd
 
 	switch integration {
