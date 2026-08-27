@@ -114,7 +114,12 @@ func (s *Server) postClaudeProviderMessage(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	upstreamURL, err := url.Parse(strings.TrimRight(settings.ProviderURL, "/") + r.URL.Path)
+	profile, err := settings.Profile()
+	if err != nil {
+		writeClaudeProviderError(w, http.StatusInternalServerError, err)
+		return
+	}
+	upstreamURL, err := url.Parse(profile.AnthropicURL(r.URL.Path))
 	if err != nil {
 		writeClaudeProviderError(w, http.StatusInternalServerError, err)
 		return
@@ -138,7 +143,7 @@ func (s *Server) postClaudeProviderMessage(w http.ResponseWriter, r *http.Reques
 
 	response, err := s.providerHTTPClient().Do(upstreamRequest)
 	if err != nil {
-		writeClaudeProviderError(w, http.StatusBadGateway, fmt.Errorf("connect to LiteLLM provider: %w", err))
+		writeClaudeProviderError(w, http.StatusBadGateway, fmt.Errorf("connect to provider: %w", err))
 		return
 	}
 	defer response.Body.Close()
@@ -184,7 +189,11 @@ func (s *Server) resolveClaudeRoutes(ctx context.Context) ([]claudeRoute, config
 	if err != nil {
 		return nil, config.Settings{}, "", err
 	}
-	client := provider.NewClient(settings.ProviderURL, apiKey)
+	profile, err := settings.Profile()
+	if err != nil {
+		return nil, config.Settings{}, "", err
+	}
+	client := provider.NewClient(profile, apiKey)
 	client.HTTP = s.providerHTTPClient()
 	catalog, err := client.ListModels(ctx)
 	if err != nil {

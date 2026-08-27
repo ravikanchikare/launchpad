@@ -7,11 +7,15 @@ export function SettingsScreen() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ["settings"], queryFn: getSettings });
   const { data: launcherConfig } = useQuery({ queryKey: ["launcher-config"], queryFn: getLauncherConfig });
+  const [providerKind, setProviderKind] = useState<"litellm" | "openai-compatible">("litellm");
   const [providerUrl, setProviderUrl] = useState("");
+  const [modelsUrl, setModelsUrl] = useState("");
 
   useEffect(() => {
     if (!launcherConfig) return;
+    setProviderKind(launcherConfig.providerKind);
     setProviderUrl(launcherConfig.providerUrl);
+    setModelsUrl(launcherConfig.modelsUrl);
   }, [launcherConfig]);
 
   const mut = useMutation({
@@ -34,24 +38,35 @@ export function SettingsScreen() {
         <div>
           <h1 className="px-4 text-lg font-medium text-neutral-950">Settings</h1>
           <p className="mt-1 px-4 text-xs leading-5 text-neutral-500">
-            Configure the LiteLLM provider and application behavior.
+            Configure the model provider and application behavior.
           </p>
         </div>
 
         <section className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
           <div className="border-b border-neutral-200 px-4 py-3.5">
-            <h2 className="text-sm font-medium text-neutral-950">LiteLLM provider</h2>
+            <h2 className="text-sm font-medium text-neutral-950">Model provider</h2>
             <p className="text-xs leading-5 text-neutral-500">
-              The CLI automatically uses <code>LITELLM_API_KEY</code> when it is available.
+              The CLI automatically uses <code>LAUNCHPAD_PROVIDER_API_KEY</code> when it is available.
             </p>
           </div>
           <form
             className="space-y-4 px-4 py-4"
             onSubmit={(event) => {
               event.preventDefault();
-              launcherMut.mutate({ providerUrl });
+              launcherMut.mutate({ providerKind, providerUrl, modelsUrl });
             }}
           >
+            <label className="block">
+              <span className="text-xs font-medium text-neutral-700">Provider type</span>
+              <select
+                value={providerKind}
+                onChange={(event) => setProviderKind(event.target.value as "litellm" | "openai-compatible")}
+                className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+              >
+                <option value="litellm">LiteLLM</option>
+                <option value="openai-compatible">OpenAI-compatible</option>
+              </select>
+            </label>
             <label className="block">
               <span className="text-xs font-medium text-neutral-700">Provider URL</span>
               <input
@@ -62,6 +77,19 @@ export function SettingsScreen() {
                 type="url"
                 required
               />
+            </label>
+            <label className="block">
+              <span className="text-xs font-medium text-neutral-700">Models URL</span>
+              <input
+                value={modelsUrl}
+                onChange={(event) => setModelsUrl(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
+                placeholder="Automatic"
+                type="url"
+              />
+              <span className="mt-1 block text-[11px] leading-4 text-neutral-400">
+                Optional OpenAI-compatible model catalog endpoint.
+              </span>
             </label>
             <div className="flex items-center justify-between gap-4">
               <p className="text-xs text-neutral-500">
@@ -104,7 +132,7 @@ export function SettingsScreen() {
           </div>
         </div>
         <p className="px-4 text-[11px] leading-4 text-neutral-400">
-          Provider keys are read from <code>LITELLM_API_KEY</code> or the macOS Keychain and are never stored in this settings file.
+          Provider keys are read from <code>LAUNCHPAD_PROVIDER_API_KEY</code> or the macOS Keychain and are never stored in this settings file.
         </p>
       </div>
     </main>

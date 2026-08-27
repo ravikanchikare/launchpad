@@ -68,6 +68,8 @@ func (s *Server) getLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"providerUrl":      settings.ProviderURL,
+		"providerKind":     settings.ProviderKind,
+		"modelsUrl":        settings.ModelsURL,
 		"cliName":          config.CLIName(),
 		"apiKeyConfigured": keyErr == nil,
 	})
@@ -75,7 +77,9 @@ func (s *Server) getLauncherConfig(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) postLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		ProviderURL *string `json:"providerUrl"`
+		ProviderKind *provider.Kind `json:"providerKind"`
+		ProviderURL  *string        `json:"providerUrl"`
+		ModelsURL    *string        `json:"modelsUrl"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
@@ -88,6 +92,12 @@ func (s *Server) postLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if request.ProviderURL != nil {
 		settings.ProviderURL = strings.TrimSpace(*request.ProviderURL)
+	}
+	if request.ProviderKind != nil {
+		settings.ProviderKind = *request.ProviderKind
+	}
+	if request.ModelsURL != nil {
+		settings.ModelsURL = strings.TrimSpace(*request.ModelsURL)
 	}
 	if err := config.Save(settings); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -158,7 +168,7 @@ func (s *Server) getIntegrations(w http.ResponseWriter, r *http.Request) {
 	installed := launch.IsInstalled("claude")
 	out := []resp{
 		{ID: "claude-desktop", Name: "Claude", Description: "Use provider models in Claude Desktop", Installed: installed},
-		{ID: "chatgpt", Name: "ChatGPT", Description: "Launch ChatGPT through your LiteLLM provider", Installed: launch.IsInstalled("chatgpt"), Command: cliName + " launch chatgpt"},
+		{ID: "chatgpt", Name: "ChatGPT", Description: "Launch ChatGPT through your model provider", Installed: launch.IsInstalled("chatgpt"), Command: cliName + " launch chatgpt"},
 	}
 	enabledTerminal := map[string]bool{"claude": true, "codex": true, "opencode": true, "copilot": true}
 	for _, inf := range infos {
@@ -285,7 +295,12 @@ func (s *Server) getClaudeModels(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusPreconditionFailed)
 		return
 	}
-	catalog, err := provider.NewClient(settings.ProviderURL, apiKey).ListModels(r.Context())
+	profile, err := settings.Profile()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	catalog, err := provider.NewClient(profile, apiKey).ListModels(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return

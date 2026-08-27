@@ -10,15 +10,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"launchpad/internal/provider"
 )
 
 type Runner struct {
-	ProviderURL string
-	APIKey      string
-	Executable  string
-	Stdin       io.Reader
-	Stdout      io.Writer
-	Stderr      io.Writer
+	Provider   provider.Profile
+	APIKey     string
+	Executable string
+	Stdin      io.Reader
+	Stdout     io.Writer
+	Stderr     io.Writer
 }
 
 func (r Runner) Run(ctx context.Context, integration, model string, args []string) error {
@@ -38,10 +40,10 @@ func (r Runner) Run(ctx context.Context, integration, model string, args []strin
 }
 
 func (r Runner) command(ctx context.Context, integration, model string, args []string) (*exec.Cmd, error) {
-	providerRoot := strings.TrimRight(r.ProviderURL, "/")
-	openAIBase := providerRoot + "/v1"
+	providerRoot := r.Provider.AnthropicBaseURL()
+	openAIBase := r.Provider.OpenAIBaseURL()
 	overrides := map[string]string{"LAUNCHPAD_MODEL": model}
-	unset := append([]string{"LITELLM_API_KEY", "LITELLM_BASE_URL"}, ClaudeProviderEnvironment...)
+	unset := append([]string{"LAUNCHPAD_PROVIDER_API_KEY", "LAUNCHPAD_PROVIDER_URL"}, ClaudeProviderEnvironment...)
 	var cmd *exec.Cmd
 
 	switch integration {
@@ -78,7 +80,7 @@ func (r Runner) command(ctx context.Context, integration, model string, args []s
 		cmd = exec.CommandContext(ctx, path, append(launchArgs, args...)...)
 		overrides["OPENAI_API_KEY"] = r.APIKey
 	case "chatgpt":
-		if err := ConfigureChatGPT(providerRoot, model, r.Executable); err != nil {
+		if err := ConfigureChatGPT(openAIBase, model, r.Executable); err != nil {
 			return nil, err
 		}
 		chatGPTCommand, err := ChatGPTLaunchCommand(ctx)

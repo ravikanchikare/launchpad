@@ -9,7 +9,7 @@ import (
 const ManagementKeySlug = "management-key"
 
 func Resolve() (string, error) {
-	if token := strings.TrimSpace(os.Getenv("LITELLM_API_KEY")); token != "" {
+	if token := strings.TrimSpace(os.Getenv("LAUNCHPAD_PROVIDER_API_KEY")); token != "" {
 		return token, nil
 	}
 	if os.Getenv("LAUNCHPAD_DISABLE_KEYCHAIN") != "1" {
@@ -17,7 +17,7 @@ func Resolve() (string, error) {
 			return token, nil
 		}
 	}
-	return "", errors.New("LITELLM_API_KEY is not set and no management key is stored in Keychain")
+	return "", errors.New("LAUNCHPAD_PROVIDER_API_KEY is not set and no management key is stored in Keychain")
 }
 
 func PersistForDesktop(token string) error {
@@ -25,7 +25,7 @@ func PersistForDesktop(token string) error {
 	if token == "" {
 		return errors.New("cannot store an empty management key")
 	}
-	if token == strings.TrimSpace(os.Getenv("LITELLM_API_KEY")) {
+	if token == strings.TrimSpace(os.Getenv("LAUNCHPAD_PROVIDER_API_KEY")) {
 		return SaveToKeychain(ManagementKeySlug, token)
 	}
 	return nil

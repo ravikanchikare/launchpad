@@ -10,6 +10,9 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"launchpad/internal/config"
+	"launchpad/internal/provider"
 )
 
 func TestLaunchClaudeEndToEnd(t *testing.T) {
@@ -28,7 +31,7 @@ func TestLaunchClaudeEndToEnd(t *testing.T) {
 	}
 	t.Setenv("HOME", home)
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("LITELLM_API_KEY", "test-secret")
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "test-secret")
 	t.Setenv("LAUNCHPAD_TEST_OUTPUT", output)
 	var stdout, stderr bytes.Buffer
 	handled, code := Run(context.Background(), "/tmp/launchpad", []string{
@@ -74,8 +77,8 @@ func TestModelDiscoveryToOpenCodeEndToEnd(t *testing.T) {
 	}
 	t.Setenv("HOME", home)
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("LITELLM_API_KEY", "test-secret")
-	t.Setenv("LITELLM_BASE_URL", server.URL)
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "test-secret")
+	t.Setenv("LAUNCHPAD_PROVIDER_URL", server.URL)
 	t.Setenv("LAUNCHPAD_ASSUME_TTY", "1")
 	t.Setenv("LAUNCHPAD_TEST_OUTPUT", output)
 	var stdout, stderr bytes.Buffer
@@ -97,19 +100,41 @@ func TestModelDiscoveryToOpenCodeEndToEnd(t *testing.T) {
 
 func TestMissingKeyDoesNotLaunch(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	t.Setenv("LITELLM_API_KEY", "")
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "")
 	t.Setenv("LAUNCHPAD_DISABLE_KEYCHAIN", "1")
 	var stderr bytes.Buffer
 	_, code := Run(context.Background(), "launchpad", []string{"launch", "claude", "--model", "x"},
 		IO{In: strings.NewReader(""), Out: &bytes.Buffer{}, Err: &stderr})
-	if code != 1 || !strings.Contains(stderr.String(), "LITELLM_API_KEY") {
+	if code != 1 || !strings.Contains(stderr.String(), "LAUNCHPAD_PROVIDER_API_KEY") {
 		t.Fatalf("code=%d stderr=%q", code, stderr.String())
+	}
+}
+
+func TestSetProviderConfiguresDiscovery(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	var stdout, stderr bytes.Buffer
+	_, code := Run(context.Background(), "launchpad", []string{
+		"config", "set-provider", "https://provider.example.test/v1/",
+		"--kind", "openai-compatible",
+		"--models-url", "https://catalog.example.test/models/",
+	}, IO{In: strings.NewReader(""), Out: &stdout, Err: &stderr})
+	if code != 0 {
+		t.Fatalf("code=%d stderr=%s", code, stderr.String())
+	}
+	settings, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings.ProviderKind != provider.KindOpenAICompatible ||
+		settings.ProviderURL != "https://provider.example.test/v1" ||
+		settings.ModelsURL != "https://catalog.example.test/models" {
+		t.Fatalf("settings = %#v", settings)
 	}
 }
 
 func TestChatGPTRestoreRequiresConfirmationAndPrintsSuccess(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	t.Setenv("LITELLM_API_KEY", "")
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "")
 	t.Setenv("LAUNCHPAD_DISABLE_KEYCHAIN", "1")
 
 	originalRestore := restoreChatGPT

@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"launchpad/internal/provider"
 )
 
 func TestTerminalLaunchAdapters(t *testing.T) {
@@ -30,9 +32,12 @@ func TestTerminalLaunchAdapters(t *testing.T) {
 			}
 			t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 			t.Setenv("LAUNCHPAD_TEST_OUTPUT", output)
-			t.Setenv("LITELLM_API_KEY", "must-not-leak")
+			t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "must-not-leak")
 			t.Setenv("ANTHROPIC_AUTH_TOKEN", "must-not-leak")
-			runner := Runner{ProviderURL: "https://provider.example", APIKey: "secret"}
+			runner := Runner{
+				Provider: provider.Profile{Kind: provider.KindLiteLLM, BaseURL: "https://provider.example"},
+				APIKey:   "secret",
+			}
 			if err := runner.Run(context.Background(), test.name, "model-a", []string{"--verbose"}); err != nil {
 				t.Fatal(err)
 			}
@@ -45,7 +50,7 @@ func TestTerminalLaunchAdapters(t *testing.T) {
 					t.Fatalf("output missing %q:\n%s", want, data)
 				}
 			}
-			for _, forbidden := range []string{"LITELLM_API_KEY=must-not-leak", "ANTHROPIC_AUTH_TOKEN=must-not-leak"} {
+			for _, forbidden := range []string{"LAUNCHPAD_PROVIDER_API_KEY=must-not-leak", "ANTHROPIC_AUTH_TOKEN=must-not-leak"} {
 				if strings.Contains(string(data), forbidden) {
 					t.Fatalf("output leaked %q:\n%s", forbidden, data)
 				}

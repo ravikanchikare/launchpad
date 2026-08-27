@@ -4,13 +4,13 @@ Launchpad connects desktop and terminal AI tools to a configurable OpenAI-compat
 
 ## Capabilities
 
-- **One provider configuration.** Set one provider URL and one `LITELLM_API_KEY`. Launchpad adapts them to the configuration format expected by each supported tool.
-- **Live model discovery.** Models load from LiteLLM's model-group catalog, with `/v1/models` as a fallback for inference-only keys. Model IDs pass through unchanged.
+- **One provider configuration.** Set one provider URL and one `LAUNCHPAD_PROVIDER_API_KEY`. Launchpad adapts them to the configuration format expected by each supported tool.
+- **Provider-aware model discovery.** LiteLLM providers use the model-group catalog with an OpenAI fallback. OpenAI-compatible providers use `/v1/models`, and deployments with a custom catalog can set an explicit models URL. Model IDs pass through unchanged.
 - **Interactive model selection.** The terminal picker supports type-to-filter, arrow navigation, Page Up and Page Down, Enter to select, and Escape to cancel.
 - **Terminal integrations.** Launch Claude Code, Codex, OpenCode, and Copilot CLI without modifying their persistent user configuration.
 - **Desktop integrations.** Configure Claude Desktop through a local compatibility service and ChatGPT through a managed profile block.
 - **Safe ChatGPT restore.** Launchpad captures the previous ChatGPT model settings before changing them and provides an interactive restore command.
-- **Credential isolation.** Provider keys come from `LITELLM_API_KEY` or the macOS Keychain. They are not written to Launchpad's settings file or inherited unnecessarily by child processes.
+- **Credential isolation.** Provider keys come from `LAUNCHPAD_PROVIDER_API_KEY` or the macOS Keychain. They are not written to Launchpad's settings file or inherited unnecessarily by child processes.
 - **Build-time branding.** Distributors can compile a permanent CLI name that is used in help, desktop commands, and restore instructions.
 - **Desktop management UI.** Configure the provider, map Claude Desktop model slots, copy launch commands, and control application preferences.
 
@@ -42,8 +42,8 @@ Launchpad connects desktop and terminal AI tools to a configurable OpenAI-compat
 
 ## How it works
 
-1. Launchpad resolves the provider URL from saved settings or `LITELLM_BASE_URL`.
-2. It resolves the provider key from `LITELLM_API_KEY`, then the macOS Keychain.
+1. Launchpad resolves the provider profile from saved settings and `LAUNCHPAD_PROVIDER_*` overrides.
+2. It resolves the provider key from `LAUNCHPAD_PROVIDER_API_KEY`, then the macOS Keychain.
 3. If `--model` is omitted, the provider client fetches the model catalog and opens the interactive picker.
 4. The launcher translates the selected model, provider URL, and key into tool-specific arguments, environment variables, or profile files.
 5. Terminal tools run with a constructed child environment. Desktop tools are restarted only when their profile changes require it.
@@ -53,11 +53,17 @@ The [implementation guide](docs/implementation.md) documents the architecture, e
 ## Configure the provider
 
 ```sh
-export LITELLM_API_KEY=...
-launchpad config set-provider https://provider.example.com
+export LAUNCHPAD_PROVIDER_API_KEY=...
+launchpad config set-provider https://provider.example.com --kind litellm
 ```
 
-`LITELLM_BASE_URL` overrides the saved provider URL for one process. The default is `http://localhost:4000`.
+For a standard OpenAI-compatible provider:
+
+```sh
+launchpad config set-provider https://provider.example.com/v1 --kind openai-compatible
+```
+
+Add `--models-url https://catalog.example.com/models` when model discovery uses a separate OpenAI-compatible endpoint. `LAUNCHPAD_PROVIDER_URL`, `LAUNCHPAD_PROVIDER_KIND`, and `LAUNCHPAD_MODELS_URL` override saved values for one process. The default profile is LiteLLM at `http://localhost:4000`.
 
 ## Run the desktop app
 
