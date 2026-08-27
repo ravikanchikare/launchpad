@@ -68,7 +68,7 @@ func (s *Server) getLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
 		"gatewayUrl":       settings.GatewayURL,
-		"cliName":          config.CLIName(settings, "launchpad"),
+		"cliName":          config.CLIName(),
 		"apiKeyConfigured": keyErr == nil,
 	})
 }
@@ -76,7 +76,6 @@ func (s *Server) getLauncherConfig(w http.ResponseWriter, r *http.Request) {
 func (s *Server) postLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		GatewayURL *string `json:"gatewayUrl"`
-		CLIName    *string `json:"cliName"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
@@ -89,9 +88,6 @@ func (s *Server) postLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	if request.GatewayURL != nil {
 		settings.GatewayURL = strings.TrimSpace(*request.GatewayURL)
-	}
-	if request.CLIName != nil {
-		settings.CLIName = strings.TrimSpace(*request.CLIName)
 	}
 	if err := config.Save(settings); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -151,8 +147,7 @@ func (s *Server) postSettings(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getIntegrations(w http.ResponseWriter, r *http.Request) {
 	infos := launch.ListInfos()
-	launcherSettings, _ := config.Load()
-	cliName := config.CLIName(launcherSettings, "launchpad")
+	cliName := config.CLIName()
 	type resp struct {
 		ID          string `json:"id"`
 		Name        string `json:"name"`

@@ -22,7 +22,7 @@ func TestLoadPrecedenceAndNormalization(t *testing.T) {
 func TestSaveDoesNotStoreSecrets(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("LITELLM_API_KEY", "do-not-write")
-	if err := Save(Settings{GatewayURL: "https://gateway.example.test", CLIName: "team-launcher"}); err != nil {
+	if err := Save(Settings{GatewayURL: "https://gateway.example.test"}); err != nil {
 		t.Fatal(err)
 	}
 	path, _ := Path()
@@ -35,5 +35,17 @@ func TestSaveDoesNotStoreSecrets(t *testing.T) {
 	}
 	if strings.Contains(string(data), "do-not-write") {
 		t.Fatal("settings contain the API key")
+	}
+}
+
+func TestCLINameUsesBuildDefault(t *testing.T) {
+	original := DefaultCLIName
+	DefaultCLIName = "team-launcher"
+	t.Cleanup(func() {
+		DefaultCLIName = original
+	})
+
+	if got := CLIName(); got != "team-launcher" {
+		t.Fatalf("CLIName() = %q", got)
 	}
 }

@@ -8,12 +8,10 @@ export function SettingsScreen() {
   const { data, isLoading, error } = useQuery({ queryKey: ["settings"], queryFn: getSettings });
   const { data: launcherConfig } = useQuery({ queryKey: ["launcher-config"], queryFn: getLauncherConfig });
   const [gatewayUrl, setGatewayUrl] = useState("");
-  const [cliName, setCliName] = useState("");
 
   useEffect(() => {
     if (!launcherConfig) return;
     setGatewayUrl(launcherConfig.gatewayUrl);
-    setCliName(launcherConfig.cliName);
   }, [launcherConfig]);
 
   const mut = useMutation({
@@ -51,7 +49,7 @@ export function SettingsScreen() {
             className="space-y-4 px-4 py-4"
             onSubmit={(event) => {
               event.preventDefault();
-              launcherMut.mutate({ gatewayUrl, cliName });
+              launcherMut.mutate({ gatewayUrl });
             }}
           >
             <label className="block">
@@ -62,17 +60,6 @@ export function SettingsScreen() {
                 className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
                 placeholder="http://localhost:4000"
                 type="url"
-                required
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium text-neutral-700">CLI name</span>
-              <input
-                value={cliName}
-                onChange={(event) => setCliName(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
-                placeholder="launchpad"
-                pattern="[A-Za-z0-9][A-Za-z0-9._-]*"
                 required
               />
             </label>

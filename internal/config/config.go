@@ -7,17 +7,15 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
 
 const DefaultGatewayURL = "http://localhost:4000"
 
-var commandNamePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+var DefaultCLIName = "launchpad"
 
 type Settings struct {
 	GatewayURL string `json:"gatewayUrl"`
-	CLIName    string `json:"cliName,omitempty"`
 }
 
 func Path() (string, error) {
@@ -61,9 +59,6 @@ func Save(settings Settings) error {
 		return err
 	}
 	settings.GatewayURL = normalized
-	if settings.CLIName != "" && !commandNamePattern.MatchString(settings.CLIName) {
-		return errors.New("CLI name must be a command name, not a path")
-	}
 	path, err := Path()
 	if err != nil {
 		return err
@@ -97,16 +92,6 @@ func NormalizeGatewayURL(value string) (string, error) {
 	return value, nil
 }
 
-func CLIName(settings Settings, executable string) string {
-	for _, candidate := range []string{
-		strings.TrimSpace(os.Getenv("LAUNCHPAD_CLI_NAME")),
-		strings.TrimSpace(settings.CLIName),
-		filepath.Base(executable),
-		"launchpad",
-	} {
-		if commandNamePattern.MatchString(candidate) {
-			return candidate
-		}
-	}
-	return "launchpad"
+func CLIName() string {
+	return DefaultCLIName
 }

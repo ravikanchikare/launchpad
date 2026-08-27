@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"launchpad/internal/config"
 	"launchpad/internal/store"
 )
 
@@ -16,11 +17,16 @@ func TestLauncherConfigAndVisibleIntegrations(t *testing.T) {
 	t.Setenv("LITELLM_BASE_URL", "")
 	t.Setenv("LITELLM_API_KEY", "test-key")
 	t.Setenv("LAUNCHPAD_DISABLE_KEYCHAIN", "1")
+	originalCLIName := config.DefaultCLIName
+	config.DefaultCLIName = "team-launcher"
+	t.Cleanup(func() {
+		config.DefaultCLIName = originalCLIName
+	})
 	srv := &Server{Store: &store.Store{DBPath: home + "/db.sqlite"}}
 	handler := srv.Handler()
 
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/launcher/config",
-		strings.NewReader(`{"gatewayUrl":"https://gateway.example.test/","cliName":"team-launcher"}`))
+		strings.NewReader(`{"gatewayUrl":"https://gateway.example.test/"}`))
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
