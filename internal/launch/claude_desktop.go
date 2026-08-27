@@ -29,9 +29,9 @@ const (
 )
 
 type ClaudeDesktopProfile struct {
-	GatewayURL string
-	APIKey     string
-	AutoMode   bool
+	ProviderURL string
+	APIKey      string
+	AutoMode    bool
 }
 
 // ClaudeDesktopRunning reports whether the macOS Claude Desktop process is open.
@@ -53,7 +53,7 @@ func ConfigureClaudeDesktop(ctx context.Context, profile ClaudeDesktopProfile) e
 	}
 	if !running {
 		if err := claudeDesktopApplyProfile(profile); err != nil {
-			return fmt.Errorf("configure Claude Desktop gateway profile: %w", err)
+			return fmt.Errorf("configure Claude Desktop provider profile: %w", err)
 		}
 		if err := claudeDesktopOpen(); err != nil {
 			return fmt.Errorf("open Claude Desktop: %w", err)
@@ -70,7 +70,7 @@ func ConfigureClaudeDesktop(ctx context.Context, profile ClaudeDesktopProfile) e
 		return err
 	}
 	if err := claudeDesktopApplyProfile(profile); err != nil {
-		profileErr := fmt.Errorf("configure Claude Desktop gateway profile: %w", err)
+		profileErr := fmt.Errorf("configure Claude Desktop provider profile: %w", err)
 		if openErr := claudeDesktopOpen(); openErr != nil {
 			return errors.Join(profileErr, fmt.Errorf("reopen Claude Desktop after profile failure: %w", openErr))
 		}
@@ -154,8 +154,8 @@ func claudeDesktopPaths() (claudeDesktopProfilePaths, error) {
 }
 
 func writeClaudeDesktopProfile(profile ClaudeDesktopProfile) error {
-	if strings.TrimSpace(profile.GatewayURL) == "" {
-		return errors.New("gateway URL is required")
+	if strings.TrimSpace(profile.ProviderURL) == "" {
+		return errors.New("provider URL is required")
 	}
 	if strings.TrimSpace(profile.APIKey) == "" {
 		return errors.New("management key is required")
@@ -170,7 +170,7 @@ func writeClaudeDesktopProfile(profile ClaudeDesktopProfile) error {
 		return fmt.Errorf("read Claude Desktop profile: %w", err)
 	}
 	profileConfig["inferenceProvider"] = "gateway"
-	profileConfig["inferenceGatewayBaseUrl"] = strings.TrimRight(profile.GatewayURL, "/")
+	profileConfig["inferenceGatewayBaseUrl"] = strings.TrimRight(profile.ProviderURL, "/")
 	profileConfig["inferenceGatewayApiKey"] = profile.APIKey
 	profileConfig["inferenceGatewayAuthScheme"] = "bearer"
 	profileConfig["deploymentDisplayName"] = claudeDesktopProfileName
@@ -180,7 +180,7 @@ func writeClaudeDesktopProfile(profile ClaudeDesktopProfile) error {
 	profileConfig["disableEssentialTelemetry"] = true
 	profileConfig["disableNonessentialTelemetry"] = true
 	profileConfig["autoModeEnabled"] = profile.AutoMode
-	// Claude discovers the current model catalog from the gateway. Persisting a
+	// Claude discovers the current model catalog from the provider. Persisting a
 	// static list here prevents newly enabled LiteLLM models from appearing.
 	delete(profileConfig, "inferenceModels")
 	if err := writeClaudeDesktopJSON(paths.profile, profileConfig); err != nil {

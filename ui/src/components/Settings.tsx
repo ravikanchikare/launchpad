@@ -7,11 +7,11 @@ export function SettingsScreen() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ["settings"], queryFn: getSettings });
   const { data: launcherConfig } = useQuery({ queryKey: ["launcher-config"], queryFn: getLauncherConfig });
-  const [gatewayUrl, setGatewayUrl] = useState("");
+  const [providerUrl, setProviderUrl] = useState("");
 
   useEffect(() => {
     if (!launcherConfig) return;
-    setGatewayUrl(launcherConfig.gatewayUrl);
+    setProviderUrl(launcherConfig.providerUrl);
   }, [launcherConfig]);
 
   const mut = useMutation({
@@ -34,13 +34,13 @@ export function SettingsScreen() {
         <div>
           <h1 className="px-4 text-lg font-medium text-neutral-950">Settings</h1>
           <p className="mt-1 px-4 text-xs leading-5 text-neutral-500">
-            Configure the LiteLLM gateway and application behavior.
+            Configure the LiteLLM provider and application behavior.
           </p>
         </div>
 
         <section className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
           <div className="border-b border-neutral-200 px-4 py-3.5">
-            <h2 className="text-sm font-medium text-neutral-950">LiteLLM gateway</h2>
+            <h2 className="text-sm font-medium text-neutral-950">LiteLLM provider</h2>
             <p className="text-xs leading-5 text-neutral-500">
               The CLI automatically uses <code>LITELLM_API_KEY</code> when it is available.
             </p>
@@ -49,14 +49,14 @@ export function SettingsScreen() {
             className="space-y-4 px-4 py-4"
             onSubmit={(event) => {
               event.preventDefault();
-              launcherMut.mutate({ gatewayUrl });
+              launcherMut.mutate({ providerUrl });
             }}
           >
             <label className="block">
-              <span className="text-xs font-medium text-neutral-700">Gateway URL</span>
+              <span className="text-xs font-medium text-neutral-700">Provider URL</span>
               <input
-                value={gatewayUrl}
-                onChange={(event) => setGatewayUrl(event.target.value)}
+                value={providerUrl}
+                onChange={(event) => setProviderUrl(event.target.value)}
                 className="mt-1 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-400"
                 placeholder="http://localhost:4000"
                 type="url"
@@ -72,7 +72,7 @@ export function SettingsScreen() {
                 disabled={launcherMut.isPending}
                 className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
               >
-                {launcherMut.isPending ? "Saving…" : "Save gateway"}
+                {launcherMut.isPending ? "Saving…" : "Save provider"}
               </button>
             </div>
             {launcherMut.error && <p className="text-xs text-red-600">{launcherMut.error.message}</p>}
@@ -104,7 +104,7 @@ export function SettingsScreen() {
           </div>
         </div>
         <p className="px-4 text-[11px] leading-4 text-neutral-400">
-          Gateway keys are read from <code>LITELLM_API_KEY</code> or the macOS Keychain and are never stored in this settings file.
+          Provider keys are read from <code>LITELLM_API_KEY</code> or the macOS Keychain and are never stored in this settings file.
         </p>
       </div>
     </main>

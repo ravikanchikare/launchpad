@@ -10,12 +10,12 @@ import (
 	"strings"
 )
 
-const DefaultGatewayURL = "http://localhost:4000"
+const DefaultProviderURL = "http://localhost:4000"
 
 var DefaultCLIName = "launchpad"
 
 type Settings struct {
-	GatewayURL string `json:"gatewayUrl"`
+	ProviderURL string `json:"providerUrl"`
 }
 
 func Path() (string, error) {
@@ -27,7 +27,7 @@ func Path() (string, error) {
 }
 
 func Load() (Settings, error) {
-	settings := Settings{GatewayURL: DefaultGatewayURL}
+	settings := Settings{ProviderURL: DefaultProviderURL}
 	path, err := Path()
 	if err != nil {
 		return Settings{}, err
@@ -40,25 +40,25 @@ func Load() (Settings, error) {
 		return Settings{}, readErr
 	}
 	if value := strings.TrimSpace(os.Getenv("LITELLM_BASE_URL")); value != "" {
-		settings.GatewayURL = value
+		settings.ProviderURL = value
 	}
-	if settings.GatewayURL == "" {
-		settings.GatewayURL = DefaultGatewayURL
+	if settings.ProviderURL == "" {
+		settings.ProviderURL = DefaultProviderURL
 	}
-	normalized, err := NormalizeGatewayURL(settings.GatewayURL)
+	normalized, err := NormalizeProviderURL(settings.ProviderURL)
 	if err != nil {
 		return Settings{}, err
 	}
-	settings.GatewayURL = normalized
+	settings.ProviderURL = normalized
 	return settings, nil
 }
 
 func Save(settings Settings) error {
-	normalized, err := NormalizeGatewayURL(settings.GatewayURL)
+	normalized, err := NormalizeProviderURL(settings.ProviderURL)
 	if err != nil {
 		return err
 	}
-	settings.GatewayURL = normalized
+	settings.ProviderURL = normalized
 	path, err := Path()
 	if err != nil {
 		return err
@@ -77,17 +77,17 @@ func Save(settings Settings) error {
 	return os.Chmod(path, 0o600)
 }
 
-func NormalizeGatewayURL(value string) (string, error) {
+func NormalizeProviderURL(value string) (string, error) {
 	value = strings.TrimRight(strings.TrimSpace(value), "/")
 	parsed, err := url.Parse(value)
 	if err != nil || parsed.Host == "" {
-		return "", errors.New("gateway URL must be an absolute URL")
+		return "", errors.New("provider URL must be an absolute URL")
 	}
 	if parsed.Scheme != "https" && parsed.Scheme != "http" {
-		return "", errors.New("gateway URL must use http or https")
+		return "", errors.New("provider URL must use http or https")
 	}
 	if parsed.RawQuery != "" || parsed.Fragment != "" {
-		return "", errors.New("gateway URL cannot contain a query or fragment")
+		return "", errors.New("provider URL cannot contain a query or fragment")
 	}
 	return value, nil
 }

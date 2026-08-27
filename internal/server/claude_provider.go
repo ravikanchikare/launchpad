@@ -13,7 +13,7 @@ import (
 
 	"launchpad/internal/config"
 	"launchpad/internal/credentials"
-	"launchpad/internal/gateway"
+	"launchpad/internal/provider"
 	"launchpad/internal/store"
 )
 
@@ -34,10 +34,10 @@ var claudeRouteSlots = []claudeRoute{
 	{ID: "claude-sonnet-4-6", CreatedAt: "2025-11-18T00:00:00Z", Family: "sonnet"},
 }
 
-func (s *Server) getClaudeGatewayModels(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getClaudeProviderModels(w http.ResponseWriter, r *http.Request) {
 	routes, _, _, err := s.resolveClaudeRoutes(r.Context())
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusBadGateway, err)
+		writeClaudeProviderError(w, http.StatusBadGateway, err)
 		return
 	}
 	type model struct {
@@ -71,29 +71,29 @@ func (s *Server) getClaudeGatewayModels(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-func (s *Server) postClaudeGatewayMessage(w http.ResponseWriter, r *http.Request) {
+func (s *Server) postClaudeProviderMessage(w http.ResponseWriter, r *http.Request) {
 	routes, settings, apiKey, err := s.resolveClaudeRoutes(r.Context())
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusBadGateway, err)
+		writeClaudeProviderError(w, http.StatusBadGateway, err)
 		return
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, (64<<20)+1))
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusBadRequest, err)
+		writeClaudeProviderError(w, http.StatusBadRequest, err)
 		return
 	}
 	if len(body) > 64<<20 {
-		writeClaudeGatewayError(w, http.StatusRequestEntityTooLarge, errors.New("request body is too large"))
+		writeClaudeProviderError(w, http.StatusRequestEntityTooLarge, errors.New("request body is too large"))
 		return
 	}
 	var payload map[string]json.RawMessage
 	if err := json.Unmarshal(body, &payload); err != nil {
-		writeClaudeGatewayError(w, http.StatusBadRequest, fmt.Errorf("decode request: %w", err))
+		writeClaudeProviderError(w, http.StatusBadRequest, fmt.Errorf("decode request: %w", err))
 		return
 	}
 	var requestedModel string
 	if err := json.Unmarshal(payload["model"], &requestedModel); err != nil {
-		writeClaudeGatewayError(w, http.StatusBadRequest, errors.New("model is required"))
+		writeClaudeProviderError(w, http.StatusBadRequest, errors.New("model is required"))
 		return
 	}
 	var targetModel string
@@ -104,24 +104,24 @@ func (s *Server) postClaudeGatewayMessage(w http.ResponseWriter, r *http.Request
 		}
 	}
 	if targetModel == "" {
-		writeClaudeGatewayError(w, http.StatusBadRequest, fmt.Errorf("unknown Claude model route %q", requestedModel))
+		writeClaudeProviderError(w, http.StatusBadRequest, fmt.Errorf("unknown Claude model route %q", requestedModel))
 		return
 	}
 	payload["model"], _ = json.Marshal(targetModel)
 	rewritten, err := json.Marshal(payload)
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusInternalServerError, err)
+		writeClaudeProviderError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	upstreamURL, err := url.Parse(strings.TrimRight(settings.GatewayURL, "/") + r.URL.Path)
+	upstreamURL, err := url.Parse(strings.TrimRight(settings.ProviderURL, "/") + r.URL.Path)
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusInternalServerError, err)
+		writeClaudeProviderError(w, http.StatusInternalServerError, err)
 		return
 	}
 	upstreamRequest, err := http.NewRequestWithContext(r.Context(), http.MethodPost, upstreamURL.String(), bytes.NewReader(rewritten))
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusInternalServerError, err)
+		writeClaudeProviderError(w, http.StatusInternalServerError, err)
 		return
 	}
 	for name, values := range r.Header {
@@ -136,9 +136,9 @@ func (s *Server) postClaudeGatewayMessage(w http.ResponseWriter, r *http.Request
 	upstreamRequest.Header.Set("X-Api-Key", apiKey)
 	upstreamRequest.Header.Set("Content-Type", "application/json")
 
-	response, err := s.gatewayHTTPClient().Do(upstreamRequest)
+	response, err := s.providerHTTPClient().Do(upstreamRequest)
 	if err != nil {
-		writeClaudeGatewayError(w, http.StatusBadGateway, fmt.Errorf("connect to LiteLLM gateway: %w", err))
+		writeClaudeProviderError(w, http.StatusBadGateway, fmt.Errorf("connect to LiteLLM provider: %w", err))
 		return
 	}
 	defer response.Body.Close()
@@ -148,12 +148,12 @@ func (s *Server) postClaudeGatewayMessage(w http.ResponseWriter, r *http.Request
 		}
 	}
 	w.WriteHeader(response.StatusCode)
-	if err := copyClaudeGatewayResponse(w, response.Body); err != nil {
-		s.log().Warn("stream Claude gateway response", "error", err)
+	if err := copyClaudeProviderResponse(w, response.Body); err != nil {
+		s.log().Warn("stream Claude provider response", "error", err)
 	}
 }
 
-func copyClaudeGatewayResponse(w http.ResponseWriter, body io.Reader) error {
+func copyClaudeProviderResponse(w http.ResponseWriter, body io.Reader) error {
 	buffer := make([]byte, 32<<10)
 	flusher, _ := w.(http.Flusher)
 	for {
@@ -184,8 +184,8 @@ func (s *Server) resolveClaudeRoutes(ctx context.Context) ([]claudeRoute, config
 	if err != nil {
 		return nil, config.Settings{}, "", err
 	}
-	client := gateway.NewClient(settings.GatewayURL, apiKey)
-	client.HTTP = s.gatewayHTTPClient()
+	client := provider.NewClient(settings.ProviderURL, apiKey)
+	client.HTTP = s.providerHTTPClient()
 	catalog, err := client.ListModels(ctx)
 	if err != nil {
 		return nil, config.Settings{}, "", err
@@ -196,12 +196,12 @@ func (s *Server) resolveClaudeRoutes(ctx context.Context) ([]claudeRoute, config
 	}
 	routes := assignClaudeRoutes(catalog, claudeConfig)
 	if len(routes) == 0 {
-		return nil, config.Settings{}, "", errors.New("gateway returned no models for Claude")
+		return nil, config.Settings{}, "", errors.New("provider returned no models for Claude")
 	}
 	return routes, settings, apiKey, nil
 }
 
-func assignClaudeRoutes(catalog []gateway.Model, saved store.ClaudeConfig) []claudeRoute {
+func assignClaudeRoutes(catalog []provider.Model, saved store.ClaudeConfig) []claudeRoute {
 	available := make(map[string]bool, len(catalog))
 	remaining := make([]string, 0, len(catalog))
 	for _, model := range catalog {
@@ -251,14 +251,14 @@ func assignClaudeRoutes(catalog []gateway.Model, saved store.ClaudeConfig) []cla
 	return routes
 }
 
-func (s *Server) gatewayHTTPClient() *http.Client {
-	if s.GatewayHTTP != nil {
-		return s.GatewayHTTP
+func (s *Server) providerHTTPClient() *http.Client {
+	if s.ProviderHTTP != nil {
+		return s.ProviderHTTP
 	}
 	return http.DefaultClient
 }
 
-func writeClaudeGatewayError(w http.ResponseWriter, status int, err error) {
+func writeClaudeProviderError(w http.ResponseWriter, status int, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]any{

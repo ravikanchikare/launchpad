@@ -12,9 +12,9 @@ import (
 )
 
 var testClaudeProfile = ClaudeDesktopProfile{
-	GatewayURL: "https://gateway.example.test",
-	APIKey:     "test-key",
-	AutoMode:   true,
+	ProviderURL: "https://provider.example.test",
+	APIKey:      "test-key",
+	AutoMode:    true,
 }
 
 func stubClaudeDesktopLifecycle(t *testing.T) {
@@ -118,7 +118,7 @@ func TestConfigureClaudeDesktopDoesNotApplyProfileAfterQuitFailure(t *testing.T)
 	}
 }
 
-func TestWriteClaudeDesktopProfileConfiguresGatewayAndPreservesUserSettings(t *testing.T) {
+func TestWriteClaudeDesktopProfileConfiguresProviderAndPreservesUserSettings(t *testing.T) {
 	stubClaudeDesktopLifecycle(t)
 	home := t.TempDir()
 	claudeDesktopUserHome = func() (string, error) { return home, nil }
@@ -151,7 +151,7 @@ func TestWriteClaudeDesktopProfileConfiguresGatewayAndPreservesUserSettings(t *t
 	profile := readTestJSON(t, paths.profile)
 	for key, want := range map[string]any{
 		"inferenceProvider":            "gateway",
-		"inferenceGatewayBaseUrl":      testClaudeProfile.GatewayURL,
+		"inferenceGatewayBaseUrl":      testClaudeProfile.ProviderURL,
 		"inferenceGatewayApiKey":       testClaudeProfile.APIKey,
 		"inferenceGatewayAuthScheme":   "bearer",
 		"deploymentDisplayName":        claudeDesktopProfileName,
@@ -164,7 +164,7 @@ func TestWriteClaudeDesktopProfileConfiguresGatewayAndPreservesUserSettings(t *t
 		}
 	}
 	if _, ok := profile["inferenceModels"]; ok {
-		t.Fatalf("inferenceModels should be omitted for gateway discovery: %#v", profile)
+		t.Fatalf("inferenceModels should be omitted for provider discovery: %#v", profile)
 	}
 	info, err := os.Stat(paths.profile)
 	if err != nil {

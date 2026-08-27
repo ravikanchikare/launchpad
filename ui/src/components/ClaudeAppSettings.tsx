@@ -33,11 +33,11 @@ export function ClaudeAppSettings() {
     fetch("/api/v1/apps/claude").then(r => r.json()).then(setCfg).catch(() => setCfg({ fable_5: "", opus_5: "", sonnet_5: "", haiku_4_5: "", sonnet_4_6: "", autoMode: false, running: false }));
     fetch("/api/v1/apps/claude/models")
       .then(async response => {
-        if (!response.ok) throw new Error((await response.text()).trim() || "Could not load gateway models");
+        if (!response.ok) throw new Error((await response.text()).trim() || "Could not load provider models");
         return response.json();
       })
       .then(setModels)
-      .catch(error => setModelsError(error instanceof Error ? error.message : "Could not load gateway models"));
+      .catch(error => setModelsError(error instanceof Error ? error.message : "Could not load provider models"));
   }, []);
 
   const update = async (patch: Partial<ClaudeConfig>) => {

@@ -8,16 +8,16 @@ import (
 
 	"launchpad/internal/config"
 	"launchpad/internal/credentials"
-	"launchpad/internal/gateway"
 	"launchpad/internal/launch"
+	"launchpad/internal/provider"
 	"launchpad/internal/store"
 )
 
 type Server struct {
-	Store            *store.Store
-	Logger           *slog.Logger
-	ClaudeGatewayURL string
-	GatewayHTTP      *http.Client
+	Store             *store.Store
+	Logger            *slog.Logger
+	ClaudeProviderURL string
+	ProviderHTTP      *http.Client
 }
 
 func (s *Server) log() *slog.Logger {
@@ -43,9 +43,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/v1/apps/claude/models", s.getClaudeModels)
 	mux.HandleFunc("POST /api/v1/apps/claude/restart", s.postClaudeRestart)
 	mux.HandleFunc("POST /api/v1/apps/claude/reset", s.postClaudeReset)
-	mux.HandleFunc("GET /v1/models", s.getClaudeGatewayModels)
-	mux.HandleFunc("POST /v1/messages", s.postClaudeGatewayMessage)
-	mux.HandleFunc("POST /v1/messages/count_tokens", s.postClaudeGatewayMessage)
+	mux.HandleFunc("GET /v1/models", s.getClaudeProviderModels)
+	mux.HandleFunc("POST /v1/messages", s.postClaudeProviderMessage)
+	mux.HandleFunc("POST /v1/messages/count_tokens", s.postClaudeProviderMessage)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -67,7 +67,7 @@ func (s *Server) getLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	_, keyErr := credentials.Resolve()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{
-		"gatewayUrl":       settings.GatewayURL,
+		"providerUrl":      settings.ProviderURL,
 		"cliName":          config.CLIName(),
 		"apiKeyConfigured": keyErr == nil,
 	})
@@ -75,7 +75,7 @@ func (s *Server) getLauncherConfig(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) postLauncherConfig(w http.ResponseWriter, r *http.Request) {
 	var request struct {
-		GatewayURL *string `json:"gatewayUrl"`
+		ProviderURL *string `json:"providerUrl"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "invalid body", http.StatusBadRequest)
@@ -86,8 +86,8 @@ func (s *Server) postLauncherConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if request.GatewayURL != nil {
-		settings.GatewayURL = strings.TrimSpace(*request.GatewayURL)
+	if request.ProviderURL != nil {
+		settings.ProviderURL = strings.TrimSpace(*request.ProviderURL)
 	}
 	if err := config.Save(settings); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -157,8 +157,8 @@ func (s *Server) getIntegrations(w http.ResponseWriter, r *http.Request) {
 	}
 	installed := launch.IsInstalled("claude")
 	out := []resp{
-		{ID: "claude-desktop", Name: "Claude", Description: "Use gateway models in Claude Desktop", Installed: installed},
-		{ID: "chatgpt", Name: "ChatGPT", Description: "Launch ChatGPT through your LiteLLM gateway", Installed: launch.IsInstalled("chatgpt"), Command: cliName + " launch chatgpt"},
+		{ID: "claude-desktop", Name: "Claude", Description: "Use provider models in Claude Desktop", Installed: installed},
+		{ID: "chatgpt", Name: "ChatGPT", Description: "Launch ChatGPT through your LiteLLM provider", Installed: launch.IsInstalled("chatgpt"), Command: cliName + " launch chatgpt"},
 	}
 	enabledTerminal := map[string]bool{"claude": true, "codex": true, "opencode": true, "copilot": true}
 	for _, inf := range infos {
@@ -285,7 +285,7 @@ func (s *Server) getClaudeModels(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusPreconditionFailed)
 		return
 	}
-	catalog, err := gateway.NewClient(settings.GatewayURL, apiKey).ListModels(r.Context())
+	catalog, err := provider.NewClient(settings.ProviderURL, apiKey).ListModels(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
@@ -310,12 +310,12 @@ func (s *Server) postClaudeRestart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	profile := launch.ClaudeDesktopProfile{
-		GatewayURL: s.ClaudeGatewayURL,
-		APIKey:     "launchpad",
-		AutoMode:   claudeConfig.AutoMode,
+		ProviderURL: s.ClaudeProviderURL,
+		APIKey:      "launchpad",
+		AutoMode:    claudeConfig.AutoMode,
 	}
-	if profile.GatewayURL == "" {
-		http.Error(w, "Launchpad Claude gateway is unavailable", http.StatusServiceUnavailable)
+	if profile.ProviderURL == "" {
+		http.Error(w, "Launchpad Claude provider is unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	if err := launch.ConfigureClaudeDesktop(r.Context(), profile); err != nil {

@@ -22,14 +22,14 @@ func TestConfigureAndRestoreChatGPTPreservesUserConfig(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(original), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := ConfigureChatGPT("https://gateway.example", "cheap-model", "/tmp/launchpad"); err != nil {
+	if err := ConfigureChatGPT("https://provider.example", "cheap-model", "/tmp/launchpad"); err != nil {
 		t.Fatal(err)
 	}
 	managed, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`model = "cheap-model"`, `approval_policy = "on-request"`, chatGPTManagedBegin, `base_url = "https://gateway.example/v1"`} {
+	for _, want := range []string{`model = "cheap-model"`, `approval_policy = "on-request"`, chatGPTManagedBegin, `base_url = "https://provider.example/v1"`} {
 		if !strings.Contains(string(managed), want) {
 			t.Fatalf("managed config missing %q:\n%s", want, managed)
 		}

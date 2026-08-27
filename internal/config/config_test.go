@@ -9,20 +9,20 @@ import (
 
 func TestLoadPrecedenceAndNormalization(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	t.Setenv("LITELLM_BASE_URL", "https://gateway.example.test/")
+	t.Setenv("LITELLM_BASE_URL", "https://provider.example.test/")
 	got, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.GatewayURL != "https://gateway.example.test" {
-		t.Fatalf("GatewayURL = %q", got.GatewayURL)
+	if got.ProviderURL != "https://provider.example.test" {
+		t.Fatalf("ProviderURL = %q", got.ProviderURL)
 	}
 }
 
 func TestSaveDoesNotStoreSecrets(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("LITELLM_API_KEY", "do-not-write")
-	if err := Save(Settings{GatewayURL: "https://gateway.example.test"}); err != nil {
+	if err := Save(Settings{ProviderURL: "https://provider.example.test"}); err != nil {
 		t.Fatal(err)
 	}
 	path, _ := Path()

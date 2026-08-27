@@ -32,7 +32,7 @@ func TestLaunchClaudeEndToEnd(t *testing.T) {
 	t.Setenv("LAUNCHPAD_TEST_OUTPUT", output)
 	var stdout, stderr bytes.Buffer
 	handled, code := Run(context.Background(), "/tmp/launchpad", []string{
-		"launch", "claude", "--model", "cheap-model", "--gateway-url", "https://gateway.example.test", "--", "--verbose",
+		"launch", "claude", "--model", "cheap-model", "--provider-url", "https://provider.example.test", "--", "--verbose",
 	}, IO{In: strings.NewReader(""), Out: &stdout, Err: &stderr})
 	if !handled || code != 0 {
 		t.Fatalf("handled=%v code=%d stderr=%s", handled, code, stderr.String())
@@ -42,7 +42,7 @@ func TestLaunchClaudeEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := string(data)
-	for _, want := range []string{"--model\ncheap-model\n", "--verbose\n", "https://gateway.example.test\n", "test-secret\n"} {
+	for _, want := range []string{"--model\ncheap-model\n", "--verbose\n", "https://provider.example.test\n", "test-secret\n"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("child output missing %q:\n%s", want, got)
 		}
@@ -150,8 +150,8 @@ func TestChatGPTConfigurePrintsRestoreInstructions(t *testing.T) {
 		launchChatGPT = originalLaunch
 	})
 	configured, launched := false, false
-	configureChatGPT = func(gatewayURL, model, executable string) error {
-		configured = gatewayURL == "https://gateway.example" && model == "model-a"
+	configureChatGPT = func(providerURL, model, executable string) error {
+		configured = providerURL == "https://provider.example" && model == "model-a"
 		return nil
 	}
 	chatGPTIsRunning = func(context.Context) bool { return true }
@@ -159,7 +159,7 @@ func TestChatGPTConfigurePrintsRestoreInstructions(t *testing.T) {
 
 	var stderr bytes.Buffer
 	err := runChatGPT(context.Background(), "team-launcher", "/tmp/launchpad",
-		"https://gateway.example", "model-a", true,
+		"https://provider.example", "model-a", true,
 		IO{In: strings.NewReader(""), Out: &bytes.Buffer{}, Err: &stderr})
 	if err != nil {
 		t.Fatal(err)

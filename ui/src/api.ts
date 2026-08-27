@@ -22,7 +22,7 @@ export async function updateSettings(s: Partial<Settings>): Promise<{ settings: 
 }
 
 export interface LauncherConfig {
-  gatewayUrl: string;
+  providerUrl: string;
   cliName: string;
   apiKeyConfigured: boolean;
 }
@@ -33,7 +33,7 @@ export async function getLauncherConfig(): Promise<LauncherConfig> {
   return r.json();
 }
 
-export async function updateLauncherConfig(s: Pick<LauncherConfig, "gatewayUrl">): Promise<LauncherConfig> {
+export async function updateLauncherConfig(s: Pick<LauncherConfig, "providerUrl">): Promise<LauncherConfig> {
   const r = await fetch(`${API_BASE}/api/v1/launcher/config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
