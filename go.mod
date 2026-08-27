@@ -1,10 +1,11 @@
-module harnezpad
+module launchpad
 
 go 1.22
 
 require (
 	github.com/charmbracelet/bubbletea v1.2.4
-	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6
+	github.com/google/uuid v1.6.0
+	github.com/mattn/go-sqlite3 v1.14.24
 	golang.org/x/term v0.28.0
 )
 
@@ -22,6 +23,7 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.3.8 // indirect

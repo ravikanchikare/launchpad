@@ -3,63 +3,92 @@ package picker
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"unicode"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"golang.org/x/term"
-
-	"harnezpad/internal/gateway"
 )
 
-const modelPickerPageSize = 12
+const pageSize = 10
 
-type modelPicker struct {
+var ErrCancelled = errors.New("selection cancelled")
+
+type Item struct {
+	Name        string
+	Description string
+}
+
+type selectorModel struct {
 	title     string
-	models    []gateway.Model
-	filtered  []int
+	items     []Item
 	filter    string
 	cursor    int
+	offset    int
 	selected  string
 	cancelled bool
 }
 
-func newModelPicker(title string, models []gateway.Model) modelPicker {
-	m := modelPicker{title: title, models: models}
-	m.applyFilter()
-	return m
+func newSelectorModel(title string, items []Item) selectorModel {
+	return selectorModel{title: title, items: items}
 }
 
-func (m modelPicker) Init() tea.Cmd { return nil }
+func (m selectorModel) Init() tea.Cmd { return nil }
 
-func (m modelPicker) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+func (m selectorModel) filteredItems() []Item {
+	query := strings.ToLower(strings.TrimSpace(m.filter))
+	if query == "" {
+		return m.items
+	}
+	filtered := make([]Item, 0, len(m.items))
+	for _, item := range m.items {
+		if strings.Contains(strings.ToLower(item.Name+" "+item.Description), query) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
+func (m selectorModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	key, ok := message.(tea.KeyMsg)
 	if !ok {
 		return m, nil
 	}
+	filtered := m.filteredItems()
 	switch key.Type {
-	case tea.KeyCtrlC, tea.KeyEsc, tea.KeyLeft:
+	case tea.KeyCtrlC, tea.KeyEsc:
 		m.cancelled = true
 		return m, tea.Quit
-	case tea.KeyUp:
-		if len(m.filtered) > 0 {
-			m.cursor = (m.cursor - 1 + len(m.filtered)) % len(m.filtered)
-		}
-	case tea.KeyDown:
-		if len(m.filtered) > 0 {
-			m.cursor = (m.cursor + 1) % len(m.filtered)
-		}
 	case tea.KeyEnter:
-		if len(m.filtered) > 0 {
-			m.selected = m.models[m.filtered[m.cursor]].ID
+		if len(filtered) > 0 && m.cursor >= 0 && m.cursor < len(filtered) {
+			m.selected = filtered[m.cursor].Name
 			return m, tea.Quit
 		}
+	case tea.KeyUp:
+		if m.cursor > 0 {
+			m.cursor--
+		}
+	case tea.KeyDown:
+		if m.cursor < len(filtered)-1 {
+			m.cursor++
+		}
+	case tea.KeyPgUp:
+		m.cursor -= pageSize
+		if m.cursor < 0 {
+			m.cursor = 0
+		}
+	case tea.KeyPgDown:
+		m.cursor += pageSize
+		if m.cursor >= len(filtered) {
+			m.cursor = len(filtered) - 1
+		}
 	case tea.KeyBackspace, tea.KeyDelete:
-		if m.filter != "" {
-			runes := []rune(m.filter)
+		runes := []rune(m.filter)
+		if len(runes) > 0 {
 			m.filter = string(runes[:len(runes)-1])
-			m.applyFilter()
+			m.cursor, m.offset = 0, 0
 		}
 	case tea.KeyRunes:
 		for _, r := range key.Runes {
@@ -67,148 +96,201 @@ func (m modelPicker) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				m.filter += string(r)
 			}
 		}
-		m.applyFilter()
+		m.cursor, m.offset = 0, 0
 	case tea.KeySpace:
 		m.filter += " "
-		m.applyFilter()
+		m.cursor, m.offset = 0, 0
+	}
+	filtered = m.filteredItems()
+	if len(filtered) == 0 {
+		m.cursor, m.offset = 0, 0
+	} else {
+		if m.cursor >= len(filtered) {
+			m.cursor = len(filtered) - 1
+		}
+		if m.cursor < m.offset {
+			m.offset = m.cursor
+		}
+		if m.cursor >= m.offset+pageSize {
+			m.offset = m.cursor - pageSize + 1
+		}
 	}
 	return m, nil
 }
 
-func (m *modelPicker) applyFilter() {
-	query := strings.ToLower(strings.TrimSpace(m.filter))
-	m.filtered = m.filtered[:0]
-	for i, model := range m.models {
-		if query == "" || strings.Contains(strings.ToLower(model.ID), query) {
-			m.filtered = append(m.filtered, i)
-		}
-	}
-	m.cursor = 0
-}
-
-func (m modelPicker) View() string {
+func (m selectorModel) View() string {
 	if m.selected != "" || m.cancelled {
 		return ""
 	}
 	var b strings.Builder
-	b.WriteString("\033[1m" + m.title + "\033[0m ")
+	fmt.Fprintf(&b, "\033[1m%s\033[0m", m.title)
 	if m.filter == "" {
-		b.WriteString("\033[2mType to filter...\033[0m")
+		b.WriteString("  \033[2mType to filter…\033[0m")
 	} else {
-		b.WriteString(m.filter)
+		fmt.Fprintf(&b, "  \033[36m%s\033[0m", m.filter)
 	}
 	b.WriteString("\n\n")
-	if len(m.filtered) == 0 {
-		b.WriteString("  \033[2m(no matches)\033[0m\n")
+
+	filtered := m.filteredItems()
+	if len(filtered) == 0 {
+		b.WriteString("  \033[2mNo matching models\033[0m\n")
 	} else {
-		start := m.cursor - modelPickerPageSize/2
-		if start < 0 {
-			start = 0
+		end := m.offset + pageSize
+		if end > len(filtered) {
+			end = len(filtered)
 		}
-		if maxStart := len(m.filtered) - modelPickerPageSize; start > maxStart && maxStart > 0 {
-			start = maxStart
+		if m.offset > 0 {
+			fmt.Fprintf(&b, "  \033[2m↑ %d more\033[0m\n", m.offset)
 		}
-		end := start + modelPickerPageSize
-		if end > len(m.filtered) {
-			end = len(m.filtered)
-		}
-		if start > 0 {
-			fmt.Fprintf(&b, "  \033[2m... %d more above\033[0m\n", start)
-		}
-		for position := start; position < end; position++ {
-			name := m.models[m.filtered[position]].ID
-			if position == m.cursor {
-				b.WriteString("\033[7m  ▸ " + name + "  \033[0m\n")
+		for i := m.offset; i < end; i++ {
+			item := filtered[i]
+			if i == m.cursor {
+				fmt.Fprintf(&b, "\033[1;7m  ▸ %-32s\033[0m", item.Name)
 			} else {
-				b.WriteString("    " + name + "\n")
+				fmt.Fprintf(&b, "    %-32s", item.Name)
 			}
+			if item.Description != "" {
+				fmt.Fprintf(&b, "  \033[2m%s\033[0m", item.Description)
+			}
+			b.WriteByte('\n')
 		}
-		if remaining := len(m.filtered) - end; remaining > 0 {
-			fmt.Fprintf(&b, "  \033[2m... and %d more\033[0m\n", remaining)
+		if remaining := len(filtered) - end; remaining > 0 {
+			fmt.Fprintf(&b, "  \033[2m↓ %d more\033[0m\n", remaining)
 		}
 	}
-	b.WriteString("\n\033[2m↑/↓ navigate • enter select • type to filter • esc cancel\033[0m")
+	b.WriteString("\n\033[2m↑/↓ navigate • pgup/pgdn jump • type to filter • enter select • esc cancel\033[0m")
 	return b.String()
 }
 
-func Run(title string, models []gateway.Model) (string, error) {
-	if !term.IsTerminal(int(os.Stdin.Fd())) || !term.IsTerminal(int(os.Stderr.Fd())) {
-		return "", errors.New("model selection requires an interactive terminal; use --model <model>")
-	}
-	result, err := tea.NewProgram(newModelPicker(title, models), tea.WithInput(os.Stdin), tea.WithOutput(os.Stderr), tea.WithAltScreen()).Run()
-	if err != nil {
-		return "", err
-	}
-	picker, ok := result.(modelPicker)
-	if !ok || picker.cancelled || picker.selected == "" {
-		return "", errors.New("model selection cancelled")
-	}
-	return picker.selected, nil
+type ConfirmDefault int
+
+const (
+	ConfirmDefaultYes ConfirmDefault = iota
+	ConfirmDefaultNo
+)
+
+type ConfirmOptions struct {
+	YesLabel string
+	NoLabel  string
+	Default  ConfirmDefault
 }
 
-type restartConfirmation struct {
-	choice    int
-	selected  bool
+type confirmModel struct {
+	prompt    string
+	yesLabel  string
+	noLabel   string
+	yes       bool
+	confirmed bool
 	cancelled bool
 }
 
-func (m restartConfirmation) Init() tea.Cmd { return nil }
+func newConfirmModel(prompt string, options ConfirmOptions) confirmModel {
+	yesLabel, noLabel := options.YesLabel, options.NoLabel
+	if yesLabel == "" {
+		yesLabel = "Yes"
+	}
+	if noLabel == "" {
+		noLabel = "No"
+	}
+	return confirmModel{
+		prompt: prompt, yesLabel: yesLabel, noLabel: noLabel,
+		yes: options.Default != ConfirmDefaultNo,
+	}
+}
 
-func (m restartConfirmation) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+func (m confirmModel) Init() tea.Cmd { return nil }
+
+func (m confirmModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	key, ok := message.(tea.KeyMsg)
 	if !ok {
 		return m, nil
 	}
 	switch key.Type {
+	case tea.KeyCtrlC, tea.KeyEsc:
+		m.cancelled = true
+		return m, tea.Quit
+	case tea.KeyEnter:
+		m.confirmed = true
+		return m, tea.Quit
 	case tea.KeyLeft, tea.KeyUp:
-		m.choice = 0
+		m.yes = true
 	case tea.KeyRight, tea.KeyDown, tea.KeyTab:
-		m.choice = 1
+		m.yes = false
 	case tea.KeyRunes:
 		if len(key.Runes) > 0 {
 			switch unicode.ToLower(key.Runes[0]) {
 			case 'y':
-				m.choice, m.selected = 0, true
+				m.yes, m.confirmed = true, true
 				return m, tea.Quit
 			case 'n':
-				m.choice, m.selected = 1, true
+				m.yes, m.confirmed = false, true
 				return m, tea.Quit
 			}
 		}
-	case tea.KeyEnter:
-		m.selected = true
-		return m, tea.Quit
-	case tea.KeyEsc, tea.KeyCtrlC:
-		m.cancelled = true
-		return m, tea.Quit
 	}
 	return m, nil
 }
 
-func (m restartConfirmation) View() string {
-	if m.selected || m.cancelled {
+func (m confirmModel) View() string {
+	if m.confirmed || m.cancelled {
 		return ""
 	}
-	yes, no := " Yes ", " No "
-	if m.choice == 0 {
-		yes = "\033[7m" + yes + "\033[0m"
+	yes, no := " "+m.yesLabel+" ", " "+m.noLabel+" "
+	if m.yes {
+		yes = "\033[1;7m" + yes + "\033[0m"
+		no = "\033[2m" + no + "\033[0m"
 	} else {
-		no = "\033[7m" + no + "\033[0m"
+		yes = "\033[2m" + yes + "\033[0m"
+		no = "\033[1;7m" + no + "\033[0m"
 	}
-	return "\033[1mRestart ChatGPT to use HarnezPad?\033[0m\n\n  " + yes + "    " + no + "\n\n\033[2m←/→ navigate • enter confirm • esc cancel\033[0m"
+	return "\033[1m" + m.prompt + "\033[0m\n\n  " + yes + "  " + no +
+		"\n\n\033[2m←/→ navigate • enter confirm • esc cancel\033[0m"
 }
 
-func ConfirmChatGPTRestart() (bool, error) {
-	if !term.IsTerminal(int(os.Stdin.Fd())) || !term.IsTerminal(int(os.Stderr.Fd())) {
-		return false, nil
+func Interactive(input io.Reader, output io.Writer) bool {
+	if os.Getenv("LAUNCHPAD_ASSUME_TTY") == "1" {
+		return true
 	}
-	result, err := tea.NewProgram(restartConfirmation{}, tea.WithInput(os.Stdin), tea.WithOutput(os.Stderr)).Run()
+	in, inOK := input.(*os.File)
+	out, outOK := output.(*os.File)
+	return inOK && outOK && term.IsTerminal(int(in.Fd())) && term.IsTerminal(int(out.Fd()))
+}
+
+func Select(title string, items []Item, input io.Reader, output io.Writer) (string, error) {
+	if !Interactive(input, output) {
+		return "", errors.New("model selection requires an interactive terminal; use --model <model>")
+	}
+	result, err := tea.NewProgram(
+		newSelectorModel(title, items),
+		tea.WithInput(input),
+		tea.WithOutput(output),
+		tea.WithAltScreen(),
+	).Run()
+	if err != nil {
+		return "", err
+	}
+	selected, ok := result.(selectorModel)
+	if !ok || selected.cancelled || selected.selected == "" {
+		return "", ErrCancelled
+	}
+	return selected.selected, nil
+}
+
+func Confirm(prompt string, options ConfirmOptions, input io.Reader, output io.Writer) (bool, error) {
+	if !Interactive(input, output) {
+		return false, errors.New("confirmation requires an interactive terminal; re-run with --yes")
+	}
+	result, err := tea.NewProgram(
+		newConfirmModel(prompt, options),
+		tea.WithInput(input),
+		tea.WithOutput(output),
+	).Run()
 	if err != nil {
 		return false, err
 	}
-	confirmation, ok := result.(restartConfirmation)
-	if !ok || confirmation.cancelled || !confirmation.selected {
-		return false, nil
+	confirmed, ok := result.(confirmModel)
+	if !ok || confirmed.cancelled {
+		return false, ErrCancelled
 	}
-	return confirmation.choice == 0, nil
+	return confirmed.yes, nil
 }
