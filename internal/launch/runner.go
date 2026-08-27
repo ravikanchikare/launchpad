@@ -13,12 +13,12 @@ import (
 )
 
 type Runner struct {
-	GatewayURL string
-	APIKey     string
-	Executable string
-	Stdin      io.Reader
-	Stdout     io.Writer
-	Stderr     io.Writer
+	ProviderURL string
+	APIKey      string
+	Executable  string
+	Stdin       io.Reader
+	Stdout      io.Writer
+	Stderr      io.Writer
 }
 
 func (r Runner) Run(ctx context.Context, integration, model string, args []string) error {
@@ -38,8 +38,8 @@ func (r Runner) Run(ctx context.Context, integration, model string, args []strin
 }
 
 func (r Runner) command(ctx context.Context, integration, model string, args []string) (*exec.Cmd, error) {
-	gatewayRoot := strings.TrimRight(r.GatewayURL, "/")
-	openAIBase := gatewayRoot + "/v1"
+	providerRoot := strings.TrimRight(r.ProviderURL, "/")
+	openAIBase := providerRoot + "/v1"
 	overrides := map[string]string{"LAUNCHPAD_MODEL": model}
 	unset := append([]string{"LITELLM_API_KEY", "LITELLM_BASE_URL"}, ClaudeProviderEnvironment...)
 	var cmd *exec.Cmd
@@ -53,7 +53,7 @@ func (r Runner) command(ctx context.Context, integration, model string, args []s
 		launchArgs := ensureModelArg(args, model)
 		launchArgs = append(launchArgs, "--setting-sources", "project,local")
 		cmd = exec.CommandContext(ctx, path, launchArgs...)
-		overrides["ANTHROPIC_BASE_URL"] = gatewayRoot
+		overrides["ANTHROPIC_BASE_URL"] = providerRoot
 		overrides["ANTHROPIC_API_KEY"] = ""
 		overrides["ANTHROPIC_AUTH_TOKEN"] = r.APIKey
 		overrides["ANTHROPIC_MODEL"] = model
@@ -78,7 +78,7 @@ func (r Runner) command(ctx context.Context, integration, model string, args []s
 		cmd = exec.CommandContext(ctx, path, append(launchArgs, args...)...)
 		overrides["OPENAI_API_KEY"] = r.APIKey
 	case "chatgpt":
-		if err := ConfigureChatGPT(gatewayRoot, model, r.Executable); err != nil {
+		if err := ConfigureChatGPT(providerRoot, model, r.Executable); err != nil {
 			return nil, err
 		}
 		chatGPTCommand, err := ChatGPTLaunchCommand(ctx)

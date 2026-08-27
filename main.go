@@ -92,7 +92,7 @@ func main() {
 		}
 	}
 	port := ln.Addr().(*net.TCPAddr).Port
-	srv.ClaudeGatewayURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+	srv.ClaudeProviderURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 
 	handler := srv.Handler()
 	mux := http.NewServeMux()

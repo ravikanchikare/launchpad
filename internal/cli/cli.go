@@ -9,9 +9,9 @@ import (
 
 	"launchpad/internal/config"
 	"launchpad/internal/credentials"
-	"launchpad/internal/gateway"
 	"launchpad/internal/launch"
 	"launchpad/internal/picker"
+	"launchpad/internal/provider"
 )
 
 const Version = "0.3.0"
@@ -76,12 +76,12 @@ func runLaunch(ctx context.Context, name, executable string, settings config.Set
 		return fmt.Errorf("unknown launcher %q", integration)
 	}
 
-	model, gatewayURL, restore, yes, passthrough, err := parseLaunchArgs(args[1:])
+	model, providerURL, restore, yes, passthrough, err := parseLaunchArgs(args[1:])
 	if err != nil {
 		return err
 	}
-	if gatewayURL != "" {
-		settings.GatewayURL, err = config.NormalizeGatewayURL(gatewayURL)
+	if providerURL != "" {
+		settings.ProviderURL, err = config.NormalizeProviderURL(providerURL)
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func runLaunch(ctx context.Context, name, executable string, settings config.Set
 		return err
 	}
 	if model == "" {
-		client := gateway.NewClient(settings.GatewayURL, token)
+		client := provider.NewClient(settings.ProviderURL, token)
 		models, discoverErr := client.ListModels(ctx)
 		if discoverErr != nil {
 			return discoverErr
@@ -137,20 +137,20 @@ func runLaunch(ctx context.Context, name, executable string, settings config.Set
 		if err := credentials.PersistForDesktop(token); err != nil {
 			return fmt.Errorf("store the management key for ChatGPT's token helper: %w", err)
 		}
-		return runChatGPT(ctx, name, executable, settings.GatewayURL, model, yes, streams)
+		return runChatGPT(ctx, name, executable, settings.ProviderURL, model, yes, streams)
 	}
 	runner := launch.Runner{
-		GatewayURL: settings.GatewayURL,
-		APIKey:     token,
-		Executable: executable,
-		Stdin:      streams.In,
-		Stdout:     streams.Out,
-		Stderr:     streams.Err,
+		ProviderURL: settings.ProviderURL,
+		APIKey:      token,
+		Executable:  executable,
+		Stdin:       streams.In,
+		Stdout:      streams.Out,
+		Stderr:      streams.Err,
 	}
 	return runner.Run(ctx, integration, model, passthrough)
 }
 
-func parseLaunchArgs(args []string) (model, gatewayURL string, restore, yes bool, passthrough []string, err error) {
+func parseLaunchArgs(args []string) (model, providerURL string, restore, yes bool, passthrough []string, err error) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		if arg == "--" {
@@ -171,17 +171,17 @@ func parseLaunchArgs(args []string) (model, gatewayURL string, restore, yes bool
 				err = errors.New("--model requires a value")
 				return
 			}
-		case arg == "--gateway-url":
+		case arg == "--provider-url":
 			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
-				err = errors.New("--gateway-url requires a value")
+				err = errors.New("--provider-url requires a value")
 				return
 			}
 			i++
-			gatewayURL = args[i]
-		case strings.HasPrefix(arg, "--gateway-url="):
-			gatewayURL = strings.TrimPrefix(arg, "--gateway-url=")
-			if gatewayURL == "" {
-				err = errors.New("--gateway-url requires a value")
+			providerURL = args[i]
+		case strings.HasPrefix(arg, "--provider-url="):
+			providerURL = strings.TrimPrefix(arg, "--provider-url=")
+			if providerURL == "" {
+				err = errors.New("--provider-url requires a value")
 				return
 			}
 		case arg == "--restore":
@@ -195,7 +195,7 @@ func parseLaunchArgs(args []string) (model, gatewayURL string, restore, yes bool
 	return
 }
 
-func selectModel(streams IO, integration string, models []gateway.Model) (string, error) {
+func selectModel(streams IO, integration string, models []provider.Model) (string, error) {
 	items := make([]picker.Item, 0, len(models))
 	for _, model := range models {
 		description := strings.Join(model.Providers, ", ")
@@ -221,8 +221,8 @@ func confirm(prompt string, options picker.ConfirmOptions, yes bool, streams IO)
 	return picker.Confirm(prompt, options, streams.In, streams.Err)
 }
 
-func runChatGPT(ctx context.Context, cliName, executable, gatewayURL, model string, yes bool, streams IO) error {
-	if err := configureChatGPT(gatewayURL, model, executable); err != nil {
+func runChatGPT(ctx context.Context, cliName, executable, providerURL, model string, yes bool, streams IO) error {
+	if err := configureChatGPT(providerURL, model, executable); err != nil {
 		return err
 	}
 	fmt.Fprintln(streams.Err, "ChatGPT profile changed to Launchpad.")
@@ -261,16 +261,16 @@ func runChatGPT(ctx context.Context, cliName, executable, gatewayURL, model stri
 func runConfig(name string, settings config.Settings, args []string, streams IO) error {
 	if len(args) == 0 || args[0] == "show" {
 		_, keyErr := credentials.Resolve()
-		fmt.Fprintf(streams.Out, "gatewayUrl: %s\ncliName: %s\napiKeyConfigured: %t\n",
-			settings.GatewayURL, config.CLIName(), keyErr == nil)
+		fmt.Fprintf(streams.Out, "providerUrl: %s\ncliName: %s\napiKeyConfigured: %t\n",
+			settings.ProviderURL, config.CLIName(), keyErr == nil)
 		return nil
 	}
 	switch args[0] {
-	case "set-gateway":
+	case "set-provider":
 		if len(args) != 2 {
-			return fmt.Errorf("usage: %s config set-gateway <URL>", name)
+			return fmt.Errorf("usage: %s config set-provider <URL>", name)
 		}
-		settings.GatewayURL = args[1]
+		settings.ProviderURL = args[1]
 	default:
 		return fmt.Errorf("unknown config command %q", args[0])
 	}
@@ -282,16 +282,16 @@ func runConfig(name string, settings config.Settings, args []string, streams IO)
 }
 
 func printHelp(w io.Writer, name string) {
-	fmt.Fprintf(w, `%s — launch coding agents through a LiteLLM gateway
+	fmt.Fprintf(w, `%s — launch coding agents through a LiteLLM provider
 
 Usage:
-  %s launch <claude|codex|chatgpt|opencode|copilot> [--model MODEL] [--gateway-url URL] [--yes] [-- args]
+  %s launch <claude|codex|chatgpt|opencode|copilot> [--model MODEL] [--provider-url URL] [--yes] [-- args]
   %s launch chatgpt --restore [--yes]
   %s config show
-  %s config set-gateway <URL>
+  %s config set-provider <URL>
 
 Environment:
-  LITELLM_API_KEY  Gateway key (preferred over Keychain)
-  LITELLM_BASE_URL Gateway URL override
+  LITELLM_API_KEY  Provider key (preferred over Keychain)
+  LITELLM_BASE_URL Provider URL override
 `, name, name, name, name, name)
 }

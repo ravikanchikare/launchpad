@@ -17,9 +17,9 @@ func TestTerminalLaunchAdapters(t *testing.T) {
 		name string
 		want []string
 	}{
-		{"codex", []string{`model_provider="launchpad"`, "https://gateway.example/v1", "OPENAI_API_KEY=secret"}},
-		{"opencode", []string{"OPENCODE_CONFIG_CONTENT=", `"baseURL":"https://gateway.example/v1"`, `"model":"launchpad/model-a"`}},
-		{"copilot", []string{"COPILOT_PROVIDER_BASE_URL=https://gateway.example/v1", "COPILOT_PROVIDER_API_KEY=secret", "COPILOT_MODEL=model-a"}},
+		{"codex", []string{`model_provider="launchpad"`, "https://provider.example/v1", "OPENAI_API_KEY=secret"}},
+		{"opencode", []string{"OPENCODE_CONFIG_CONTENT=", `"baseURL":"https://provider.example/v1"`, `"model":"launchpad/model-a"`}},
+		{"copilot", []string{"COPILOT_PROVIDER_BASE_URL=https://provider.example/v1", "COPILOT_PROVIDER_API_KEY=secret", "COPILOT_MODEL=model-a"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -32,7 +32,7 @@ func TestTerminalLaunchAdapters(t *testing.T) {
 			t.Setenv("LAUNCHPAD_TEST_OUTPUT", output)
 			t.Setenv("LITELLM_API_KEY", "must-not-leak")
 			t.Setenv("ANTHROPIC_AUTH_TOKEN", "must-not-leak")
-			runner := Runner{GatewayURL: "https://gateway.example", APIKey: "secret"}
+			runner := Runner{ProviderURL: "https://provider.example", APIKey: "secret"}
 			if err := runner.Run(context.Background(), test.name, "model-a", []string{"--verbose"}); err != nil {
 				t.Fatal(err)
 			}

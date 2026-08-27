@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"launchpad/internal/gateway"
+	"launchpad/internal/provider"
 	"launchpad/internal/store"
 )
 
-func TestClaudeGatewayAdvertisesCompatibleRoutesAndRewritesModels(t *testing.T) {
+func TestClaudeProviderAdvertisesCompatibleRoutesAndRewritesModels(t *testing.T) {
 	var forwardedModel string
 	var forwardedAuthorization string
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +44,8 @@ func TestClaudeGatewayAdvertisesCompatibleRoutesAndRewritesModels(t *testing.T) 
 	t.Setenv("LITELLM_API_KEY", "upstream-secret")
 	t.Setenv("LAUNCHPAD_DISABLE_KEYCHAIN", "1")
 	srv := &Server{
-		Store:       &store.Store{DBPath: home + "/db.sqlite"},
-		GatewayHTTP: upstream.Client(),
+		Store:        &store.Store{DBPath: home + "/db.sqlite"},
+		ProviderHTTP: upstream.Client(),
 	}
 	handler := srv.Handler()
 
@@ -99,7 +99,7 @@ func TestClaudeGatewayAdvertisesCompatibleRoutesAndRewritesModels(t *testing.T) 
 }
 
 func TestAssignClaudeRoutesDoesNotHideCatalogModelsBehindDuplicateMappings(t *testing.T) {
-	catalog := []gateway.Model{
+	catalog := []provider.Model{
 		{ID: "claude-opus-5"},
 		{ID: "claude-sonnet-5"},
 		{ID: "gpt-5.6-luna"},

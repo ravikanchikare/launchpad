@@ -1,4 +1,4 @@
-package gateway
+package provider
 
 import (
 	"context"
@@ -112,7 +112,7 @@ func (c *Client) get(ctx context.Context, path string) (*http.Response, []byte, 
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("connect to LiteLLM gateway: %w", err)
+		return nil, nil, fmt.Errorf("connect to LiteLLM provider: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
@@ -125,7 +125,7 @@ func (c *Client) get(ctx context.Context, path string) (*http.Response, []byte, 
 func sortedModels(models []Model) ([]Model, error) {
 	sort.Slice(models, func(i, j int) bool { return models[i].ID < models[j].ID })
 	if len(models) == 0 {
-		return nil, fmt.Errorf("gateway returned no models")
+		return nil, fmt.Errorf("provider returned no models")
 	}
 	return models, nil
 }

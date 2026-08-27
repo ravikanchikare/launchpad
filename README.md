@@ -1,45 +1,67 @@
 # Launchpad
 
-Launchpad connects supported desktop and terminal AI tools to an OpenAI-compatible gateway such as LiteLLM.
+Launchpad connects desktop and terminal AI tools to a configurable OpenAI-compatible provider such as LiteLLM. It discovers available models, lets the user choose one interactively, and starts each tool with an isolated provider configuration.
 
-Supported tools:
+## Capabilities
 
-- Desktop: Claude Desktop and ChatGPT
-- Terminal: Claude Code, Codex, OpenCode, and Copilot CLI
+- **One provider configuration.** Set one provider URL and one `LITELLM_API_KEY`. Launchpad adapts them to the configuration format expected by each supported tool.
+- **Live model discovery.** Models load from LiteLLM's model-group catalog, with `/v1/models` as a fallback for inference-only keys. Model IDs pass through unchanged.
+- **Interactive model selection.** The terminal picker supports type-to-filter, arrow navigation, Page Up and Page Down, Enter to select, and Escape to cancel.
+- **Terminal integrations.** Launch Claude Code, Codex, OpenCode, and Copilot CLI without modifying their persistent user configuration.
+- **Desktop integrations.** Configure Claude Desktop through a local compatibility service and ChatGPT through a managed profile block.
+- **Safe ChatGPT restore.** Launchpad captures the previous ChatGPT model settings before changing them and provides an interactive restore command.
+- **Credential isolation.** Provider keys come from `LITELLM_API_KEY` or the macOS Keychain. They are not written to Launchpad's settings file or inherited unnecessarily by child processes.
+- **Build-time branding.** Distributors can compile a permanent CLI name that is used in help, desktop commands, and restore instructions.
+- **Desktop management UI.** Configure the provider, map Claude Desktop model slots, copy launch commands, and control application preferences.
 
 ## Screenshots
 
 ### Apps and Claude Desktop configuration
 
-![Apps and Claude Desktop model configuration](docs/screenshots/apps.png)
+<table><tr><td>
+<img src="docs/screenshots/apps.png" alt="Apps and Claude Desktop model configuration">
+</td></tr></table>
 
-### Settings
+### Provider settings
 
-![Gateway and application settings](docs/screenshots/settings.png)
+<table><tr><td>
+<img src="docs/screenshots/settings.png" alt="Provider and application settings">
+</td></tr></table>
 
-## Configure
+### Interactive model picker
 
-Launchpad reads the gateway key from `LITELLM_API_KEY` and does not save it in the settings database.
+<table><tr><td>
+<img src="docs/screenshots/model-picker.png" alt="Interactive terminal model picker">
+</td></tr></table>
+
+### ChatGPT restore confirmation
+
+<table><tr><td>
+<img src="docs/screenshots/chatgpt-restore.png" alt="Interactive ChatGPT restore confirmation">
+</td></tr></table>
+
+## How it works
+
+1. Launchpad resolves the provider URL from saved settings or `LITELLM_BASE_URL`.
+2. It resolves the provider key from `LITELLM_API_KEY`, then the macOS Keychain.
+3. If `--model` is omitted, the provider client fetches the model catalog and opens the interactive picker.
+4. The launcher translates the selected model, provider URL, and key into tool-specific arguments, environment variables, or profile files.
+5. Terminal tools run with a constructed child environment. Desktop tools are restarted only when their profile changes require it.
+
+The [implementation guide](docs/implementation.md) documents the architecture, each tool integration, provider configuration, and extension points.
+
+## Configure the provider
 
 ```sh
 export LITELLM_API_KEY=...
-launchpad config set-gateway https://gateway.example.com
+launchpad config set-provider https://provider.example.com
 ```
 
-Use `LITELLM_BASE_URL` to override the saved gateway URL for one process. The default URL is `http://localhost:4000`.
-
-Set the permanent CLI name when compiling the application. The `-X` value controls names shown in help, restore instructions, and the desktop app; `-o` gives the binary the same name:
-
-```sh
-CLI_NAME=my-launcher
-go build -ldflags "-X launchpad/internal/config.DefaultCLIName=$CLI_NAME" -o "$CLI_NAME" .
-```
-
-Without these build flags, the CLI name is `launchpad`.
+`LITELLM_BASE_URL` overrides the saved provider URL for one process. The default is `http://localhost:4000`.
 
 ## Run the desktop app
 
-Build the UI and launch the app:
+Build the UI and launch the application:
 
 ```sh
 npm --prefix ui install
@@ -54,9 +76,9 @@ npm --prefix ui run dev
 go run . -dev
 ```
 
-Set `LAUNCHPAD_HEADLESS=1` to run the server without opening a window. On macOS, the settings database is stored at `~/Library/Application Support/Launchpad/db.sqlite`.
+Set `LAUNCHPAD_HEADLESS=1` to run the service without opening a window. On macOS, settings are stored at `~/Library/Application Support/Launchpad/`.
 
-## Launch a terminal tool
+## Launch a tool
 
 ```sh
 launchpad launch claude
@@ -66,23 +88,32 @@ launchpad launch copilot
 launchpad launch chatgpt
 ```
 
-Without `--model`, an interactive terminal opens a searchable model picker. It supports arrow keys, Page Up and Page Down, typing to filter, Enter to select, and Escape to cancel.
-
-Pass a model or gateway URL explicitly when needed:
+Select a model and provider explicitly when needed:
 
 ```sh
-launchpad launch claude --model <gateway-model-id>
-launchpad launch claude --gateway-url https://gateway.example.com
+launchpad launch claude --model <provider-model-id>
+launchpad launch claude --provider-url https://provider.example.com
 ```
 
 ChatGPT configuration requires confirmation and prints a restore command. Use `--yes` only for intentional non-interactive automation:
 
 ```sh
-launchpad launch chatgpt --model <gateway-model-id> --yes
+launchpad launch chatgpt --model <provider-model-id> --yes
 launchpad launch chatgpt --restore --yes
 ```
 
-Claude Desktop uses a local compatibility endpoint provided by Launchpad. Keep Launchpad running while using gateway models in Claude Desktop.
+Claude Desktop uses a local compatibility endpoint provided by Launchpad. Keep Launchpad running while using provider models in Claude Desktop.
+
+## Set the build-time CLI name
+
+The `-X` value controls names shown in help, restore instructions, and the desktop app. The `-o` value gives the binary the same name:
+
+```sh
+CLI_NAME=my-launcher
+go build -ldflags "-X launchpad/internal/config.DefaultCLIName=$CLI_NAME" -o "$CLI_NAME" .
+```
+
+Without these build flags, the CLI name is `launchpad`.
 
 ## Verify
 

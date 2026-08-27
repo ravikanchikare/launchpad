@@ -26,7 +26,7 @@ func TestLauncherConfigAndVisibleIntegrations(t *testing.T) {
 	handler := srv.Handler()
 
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/launcher/config",
-		strings.NewReader(`{"gatewayUrl":"https://gateway.example.test/"}`))
+		strings.NewReader(`{"providerUrl":"https://provider.example.test/"}`))
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
@@ -37,7 +37,7 @@ func TestLauncherConfigAndVisibleIntegrations(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &saved); err != nil {
 		t.Fatal(err)
 	}
-	if saved["gatewayUrl"] != "https://gateway.example.test" || saved["cliName"] != "team-launcher" || saved["apiKeyConfigured"] != true {
+	if saved["providerUrl"] != "https://provider.example.test" || saved["cliName"] != "team-launcher" || saved["apiKeyConfigured"] != true {
 		t.Fatalf("config response = %#v", saved)
 	}
 

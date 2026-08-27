@@ -31,7 +31,7 @@ type chatGPTRestoreState struct {
 	ModelCatalogJSON savedRootValue `json:"modelCatalogJson"`
 }
 
-func ConfigureChatGPT(gatewayURL, model, executable string) error {
+func ConfigureChatGPT(providerURL, model, executable string) error {
 	configPath, statePath, catalogPath, err := chatGPTPaths()
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func ConfigureChatGPT(gatewayURL, model, executable string) error {
 	if err := writeJSONAtomic(catalogPath, map[string]any{
 		"launchpad_managed": true,
 		"models": []map[string]any{{
-			"slug": model, "display_name": model, "description": "Launchpad gateway model",
+			"slug": model, "display_name": model, "description": "Launchpad provider model",
 			"default_reasoning_level": nil, "supported_reasoning_levels": []any{},
 			"shell_type": "default", "visibility": "list", "supported_in_api": true,
 			"priority": 0, "additional_speed_tiers": []any{}, "availability_nux": nil,
@@ -86,7 +86,7 @@ func ConfigureChatGPT(gatewayURL, model, executable string) error {
 	block := chatGPTManagedBegin + "\n" +
 		"[model_providers.launchpad]\n" +
 		"name = \"Launchpad\"\n" +
-		"base_url = " + strconv.Quote(strings.TrimRight(gatewayURL, "/")+"/v1") + "\n" +
+		"base_url = " + strconv.Quote(strings.TrimRight(providerURL, "/")+"/v1") + "\n" +
 		"wire_api = \"responses\"\n\n" +
 		"[model_providers.launchpad.auth]\n" +
 		"command = " + strconv.Quote(executable) + "\n" +
@@ -137,7 +137,7 @@ func ChatGPTLaunchCommand(ctx context.Context) (*exec.Cmd, error) {
 	}
 	if ChatGPTIsRunning(ctx) {
 		if err := exec.CommandContext(ctx, "osascript", "-e", `tell application id "com.openai.codex" to quit`).Run(); err != nil {
-			return nil, fmt.Errorf("quit ChatGPT before applying the gateway profile: %w", err)
+			return nil, fmt.Errorf("quit ChatGPT before applying the provider profile: %w", err)
 		}
 		deadline := time.Now().Add(5 * time.Second)
 		for time.Now().Before(deadline) {
