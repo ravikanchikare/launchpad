@@ -14,8 +14,8 @@ import (
 func TestLauncherConfigAndVisibleIntegrations(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("LITELLM_BASE_URL", "")
-	t.Setenv("LITELLM_API_KEY", "test-key")
+	t.Setenv("LAUNCHPAD_PROVIDER_URL", "")
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "test-key")
 	t.Setenv("LAUNCHPAD_DISABLE_KEYCHAIN", "1")
 	originalCLIName := config.DefaultCLIName
 	config.DefaultCLIName = "team-launcher"
@@ -26,7 +26,11 @@ func TestLauncherConfigAndVisibleIntegrations(t *testing.T) {
 	handler := srv.Handler()
 
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/launcher/config",
-		strings.NewReader(`{"providerUrl":"https://provider.example.test/"}`))
+		strings.NewReader(`{
+			"providerKind":"openai-compatible",
+			"providerUrl":"https://provider.example.test/v1/",
+			"modelsUrl":"https://catalog.example.test/models/"
+		}`))
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
@@ -37,7 +41,11 @@ func TestLauncherConfigAndVisibleIntegrations(t *testing.T) {
 	if err := json.Unmarshal(response.Body.Bytes(), &saved); err != nil {
 		t.Fatal(err)
 	}
-	if saved["providerUrl"] != "https://provider.example.test" || saved["cliName"] != "team-launcher" || saved["apiKeyConfigured"] != true {
+	if saved["providerKind"] != "openai-compatible" ||
+		saved["providerUrl"] != "https://provider.example.test/v1" ||
+		saved["modelsUrl"] != "https://catalog.example.test/models" ||
+		saved["cliName"] != "team-launcher" ||
+		saved["apiKeyConfigured"] != true {
 		t.Fatalf("config response = %#v", saved)
 	}
 

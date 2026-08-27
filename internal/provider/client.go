@@ -12,7 +12,7 @@ import (
 )
 
 type Client struct {
-	BaseURL string
+	Profile Profile
 	Token   string
 	HTTP    *http.Client
 }
@@ -26,20 +26,23 @@ type Model struct {
 	HealthStatus       string
 }
 
-func NewClient(baseURL, token string) *Client {
+func NewClient(profile Profile, token string) *Client {
 	return &Client{
-		BaseURL: strings.TrimRight(baseURL, "/"),
+		Profile: profile,
 		Token:   token,
 		HTTP:    &http.Client{Timeout: 15 * time.Second},
 	}
 }
 
 func (c *Client) ListModels(ctx context.Context) ([]Model, error) {
-	resp, body, err := c.get(ctx, "/model_group/info")
+	if c.Profile.Kind == KindOpenAICompatible || c.Profile.ModelsURL != "" {
+		return c.listOpenAIModels(ctx)
+	}
+	resp, body, err := c.get(ctx, c.Profile.LiteLLMModelsURL())
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {
+	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusMethodNotAllowed {
 		return c.listOpenAIModels(ctx)
 	}
 	if resp.StatusCode/100 != 2 {
@@ -80,7 +83,7 @@ func (c *Client) ListModels(ctx context.Context) ([]Model, error) {
 }
 
 func (c *Client) listOpenAIModels(ctx context.Context) ([]Model, error) {
-	resp, body, err := c.get(ctx, "/v1/models")
+	resp, body, err := c.get(ctx, c.Profile.OpenAIModelsURL())
 	if err != nil {
 		return nil, err
 	}
@@ -104,15 +107,15 @@ func (c *Client) listOpenAIModels(ctx context.Context) ([]Model, error) {
 	return sortedModels(models)
 }
 
-func (c *Client) get(ctx context.Context, path string) (*http.Response, []byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.BaseURL+path, nil)
+func (c *Client) get(ctx context.Context, endpoint string) (*http.Response, []byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.Token)
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("connect to LiteLLM provider: %w", err)
+		return nil, nil, fmt.Errorf("connect to provider: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))

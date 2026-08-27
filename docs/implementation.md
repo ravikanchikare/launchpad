@@ -24,25 +24,31 @@ Tool-specific adapter
 The main boundaries are:
 
 - `internal/config` — provider URL and build-time CLI name.
-- `internal/credentials` — `LITELLM_API_KEY` and macOS Keychain resolution.
-- `internal/provider` — provider HTTP client and model discovery.
+- `internal/credentials` — `LAUNCHPAD_PROVIDER_API_KEY` and macOS Keychain resolution.
+- `internal/provider` — provider profiles, endpoint resolution, HTTP client, and model discovery.
 - `internal/picker` — terminal model and confirmation interfaces.
 - `internal/launch` — tool-specific arguments, environments, profiles, and restore behavior.
 - `internal/server` — desktop UI API and Claude Desktop compatibility endpoints.
 
 ## Provider configuration
 
-Launchpad currently supports LiteLLM and compatible OpenAI-style providers.
+Launchpad currently supports `litellm` and `openai-compatible` provider profiles.
 
 | Setting | Source | Precedence |
 | --- | --- | --- |
-| Provider URL | `LITELLM_BASE_URL` | First |
+| Provider URL | `LAUNCHPAD_PROVIDER_URL` | First |
 | Provider URL | `providerUrl` in Launchpad settings | Second |
 | Provider URL | `http://localhost:4000` | Default |
-| Provider key | `LITELLM_API_KEY` | First |
+| Provider kind | `LAUNCHPAD_PROVIDER_KIND` | First |
+| Provider kind | `providerKind` in Launchpad settings | Second |
+| Models URL | `LAUNCHPAD_MODELS_URL` | First |
+| Models URL | `modelsUrl` in Launchpad settings | Second |
+| Provider key | `LAUNCHPAD_PROVIDER_API_KEY` | First |
 | Provider key | macOS Keychain | Second |
 
-The provider client requests `/model_group/info` first because it carries model-group metadata. It falls back to `/v1/models` when the key only has inference access. Model IDs are not rewritten by the CLI.
+The provider profile owns endpoint derivation. A `litellm` profile requests `/model_group/info` first because it carries model-group metadata, then falls back to `/v1/models` when the management route is unavailable. An `openai-compatible` profile requests `/v1/models` directly. An explicit models URL overrides both strategies and must return the OpenAI model-list shape.
+
+Provider URLs may include a path prefix and may end in `/v1`. Launchpad derives the OpenAI and Anthropic bases without duplicating or dropping that segment. Model IDs are not rewritten by the CLI.
 
 Provider keys are removed from the inherited environment before a child tool starts. Each adapter adds only the variables that tool requires.
 
@@ -111,12 +117,13 @@ Provider behavior is concentrated in `internal/provider`.
 
 To add another compatible provider:
 
-1. Extend model discovery in `internal/provider/client.go` when its catalog differs from the existing LiteLLM and OpenAI response shapes.
-2. Add focused HTTP fixtures in `internal/provider/client_test.go`.
-3. Normalize provider-specific URL rules in `internal/config` rather than in individual launch adapters.
-4. Add required protocol translation to the relevant adapter in `internal/launch`.
-5. Keep credentials process-scoped and update environment-isolation tests.
-6. If Claude Desktop requires a different wire protocol, implement that translation in `internal/server` and test request rewriting with an HTTP test server.
+1. Add a provider kind and its endpoint rules to `internal/provider/profile.go`.
+2. Extend model discovery in `internal/provider/client.go` when its catalog differs from the existing LiteLLM and OpenAI response shapes.
+3. Add focused endpoint and HTTP fixtures in `internal/provider`.
+4. Keep provider-specific URL rules in the profile rather than individual launch adapters.
+5. Add required protocol translation to the relevant adapter in `internal/launch`.
+6. Keep credentials process-scoped and update environment-isolation tests.
+7. If Claude Desktop requires a different wire protocol, implement that translation in `internal/server` and test request rewriting with an HTTP test server.
 
 To add another application integration, register it in `internal/launch/registry.go`, implement its command or profile adapter, expose it through the server's enabled integration list, add its icon and UI ordering, and test that secrets do not leak into unrelated environment variables.
 

@@ -22,7 +22,9 @@ export async function updateSettings(s: Partial<Settings>): Promise<{ settings: 
 }
 
 export interface LauncherConfig {
+  providerKind: "litellm" | "openai-compatible";
   providerUrl: string;
+  modelsUrl: string;
   cliName: string;
   apiKeyConfigured: boolean;
 }
@@ -33,7 +35,9 @@ export async function getLauncherConfig(): Promise<LauncherConfig> {
   return r.json();
 }
 
-export async function updateLauncherConfig(s: Pick<LauncherConfig, "providerUrl">): Promise<LauncherConfig> {
+export async function updateLauncherConfig(
+  s: Pick<LauncherConfig, "providerKind" | "providerUrl" | "modelsUrl">,
+): Promise<LauncherConfig> {
   const r = await fetch(`${API_BASE}/api/v1/launcher/config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

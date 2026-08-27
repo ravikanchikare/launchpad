@@ -5,23 +5,33 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"launchpad/internal/provider"
 )
 
 func TestLoadPrecedenceAndNormalization(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	t.Setenv("LITELLM_BASE_URL", "https://provider.example.test/")
+	t.Setenv("LAUNCHPAD_PROVIDER_URL", "https://provider.example.test/v1/")
+	t.Setenv("LAUNCHPAD_PROVIDER_KIND", "openai-compatible")
+	t.Setenv("LAUNCHPAD_MODELS_URL", "https://catalog.example.test/models/")
 	got, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.ProviderURL != "https://provider.example.test" {
+	if got.ProviderURL != "https://provider.example.test/v1" {
 		t.Fatalf("ProviderURL = %q", got.ProviderURL)
+	}
+	if got.ProviderKind != provider.KindOpenAICompatible {
+		t.Fatalf("ProviderKind = %q", got.ProviderKind)
+	}
+	if got.ModelsURL != "https://catalog.example.test/models" {
+		t.Fatalf("ModelsURL = %q", got.ModelsURL)
 	}
 }
 
 func TestSaveDoesNotStoreSecrets(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
-	t.Setenv("LITELLM_API_KEY", "do-not-write")
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "do-not-write")
 	if err := Save(Settings{ProviderURL: "https://provider.example.test"}); err != nil {
 		t.Fatal(err)
 	}

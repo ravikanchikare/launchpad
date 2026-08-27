@@ -2,12 +2,12 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"launchpad/internal/provider"
 )
 
 const DefaultProviderURL = "http://localhost:4000"
@@ -15,7 +15,9 @@ const DefaultProviderURL = "http://localhost:4000"
 var DefaultCLIName = "launchpad"
 
 type Settings struct {
-	ProviderURL string `json:"providerUrl"`
+	ProviderKind provider.Kind `json:"providerKind"`
+	ProviderURL  string        `json:"providerUrl"`
+	ModelsURL    string        `json:"modelsUrl,omitempty"`
 }
 
 func Path() (string, error) {
@@ -27,7 +29,7 @@ func Path() (string, error) {
 }
 
 func Load() (Settings, error) {
-	settings := Settings{ProviderURL: DefaultProviderURL}
+	settings := Settings{ProviderKind: provider.KindLiteLLM, ProviderURL: DefaultProviderURL}
 	path, err := Path()
 	if err != nil {
 		return Settings{}, err
@@ -39,26 +41,36 @@ func Load() (Settings, error) {
 	} else if !os.IsNotExist(readErr) {
 		return Settings{}, readErr
 	}
-	if value := strings.TrimSpace(os.Getenv("LITELLM_BASE_URL")); value != "" {
+	if value := strings.TrimSpace(os.Getenv("LAUNCHPAD_PROVIDER_URL")); value != "" {
 		settings.ProviderURL = value
+	}
+	if value := strings.TrimSpace(os.Getenv("LAUNCHPAD_PROVIDER_KIND")); value != "" {
+		settings.ProviderKind = provider.Kind(value)
+	}
+	if value := strings.TrimSpace(os.Getenv("LAUNCHPAD_MODELS_URL")); value != "" {
+		settings.ModelsURL = value
 	}
 	if settings.ProviderURL == "" {
 		settings.ProviderURL = DefaultProviderURL
 	}
-	normalized, err := NormalizeProviderURL(settings.ProviderURL)
+	profile, err := settings.Profile()
 	if err != nil {
 		return Settings{}, err
 	}
-	settings.ProviderURL = normalized
+	settings.ProviderKind = profile.Kind
+	settings.ProviderURL = profile.BaseURL
+	settings.ModelsURL = profile.ModelsURL
 	return settings, nil
 }
 
 func Save(settings Settings) error {
-	normalized, err := NormalizeProviderURL(settings.ProviderURL)
+	profile, err := settings.Profile()
 	if err != nil {
 		return err
 	}
-	settings.ProviderURL = normalized
+	settings.ProviderKind = profile.Kind
+	settings.ProviderURL = profile.BaseURL
+	settings.ModelsURL = profile.ModelsURL
 	path, err := Path()
 	if err != nil {
 		return err
@@ -78,18 +90,12 @@ func Save(settings Settings) error {
 }
 
 func NormalizeProviderURL(value string) (string, error) {
-	value = strings.TrimRight(strings.TrimSpace(value), "/")
-	parsed, err := url.Parse(value)
-	if err != nil || parsed.Host == "" {
-		return "", errors.New("provider URL must be an absolute URL")
-	}
-	if parsed.Scheme != "https" && parsed.Scheme != "http" {
-		return "", errors.New("provider URL must use http or https")
-	}
-	if parsed.RawQuery != "" || parsed.Fragment != "" {
-		return "", errors.New("provider URL cannot contain a query or fragment")
-	}
-	return value, nil
+	profile, err := provider.NewProfile(provider.KindLiteLLM, value, "")
+	return profile.BaseURL, err
+}
+
+func (s Settings) Profile() (provider.Profile, error) {
+	return provider.NewProfile(s.ProviderKind, s.ProviderURL, s.ModelsURL)
 }
 
 func CLIName() string {

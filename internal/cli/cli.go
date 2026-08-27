@@ -86,6 +86,10 @@ func runLaunch(ctx context.Context, name, executable string, settings config.Set
 			return err
 		}
 	}
+	profile, err := settings.Profile()
+	if err != nil {
+		return err
+	}
 	if restore {
 		if integration != "chatgpt" {
 			return errors.New("--restore is only supported for ChatGPT")
@@ -123,7 +127,7 @@ func runLaunch(ctx context.Context, name, executable string, settings config.Set
 		return err
 	}
 	if model == "" {
-		client := provider.NewClient(settings.ProviderURL, token)
+		client := provider.NewClient(profile, token)
 		models, discoverErr := client.ListModels(ctx)
 		if discoverErr != nil {
 			return discoverErr
@@ -137,15 +141,15 @@ func runLaunch(ctx context.Context, name, executable string, settings config.Set
 		if err := credentials.PersistForDesktop(token); err != nil {
 			return fmt.Errorf("store the management key for ChatGPT's token helper: %w", err)
 		}
-		return runChatGPT(ctx, name, executable, settings.ProviderURL, model, yes, streams)
+		return runChatGPT(ctx, name, executable, profile.OpenAIBaseURL(), model, yes, streams)
 	}
 	runner := launch.Runner{
-		ProviderURL: settings.ProviderURL,
-		APIKey:      token,
-		Executable:  executable,
-		Stdin:       streams.In,
-		Stdout:      streams.Out,
-		Stderr:      streams.Err,
+		Provider:   profile,
+		APIKey:     token,
+		Executable: executable,
+		Stdin:      streams.In,
+		Stdout:     streams.Out,
+		Stderr:     streams.Err,
 	}
 	return runner.Run(ctx, integration, model, passthrough)
 }
@@ -221,8 +225,8 @@ func confirm(prompt string, options picker.ConfirmOptions, yes bool, streams IO)
 	return picker.Confirm(prompt, options, streams.In, streams.Err)
 }
 
-func runChatGPT(ctx context.Context, cliName, executable, providerURL, model string, yes bool, streams IO) error {
-	if err := configureChatGPT(providerURL, model, executable); err != nil {
+func runChatGPT(ctx context.Context, cliName, executable, openAIBaseURL, model string, yes bool, streams IO) error {
+	if err := configureChatGPT(openAIBaseURL, model, executable); err != nil {
 		return err
 	}
 	fmt.Fprintln(streams.Err, "ChatGPT profile changed to Launchpad.")
@@ -261,16 +265,34 @@ func runChatGPT(ctx context.Context, cliName, executable, providerURL, model str
 func runConfig(name string, settings config.Settings, args []string, streams IO) error {
 	if len(args) == 0 || args[0] == "show" {
 		_, keyErr := credentials.Resolve()
-		fmt.Fprintf(streams.Out, "providerUrl: %s\ncliName: %s\napiKeyConfigured: %t\n",
-			settings.ProviderURL, config.CLIName(), keyErr == nil)
+		fmt.Fprintf(streams.Out, "providerKind: %s\nproviderUrl: %s\nmodelsUrl: %s\ncliName: %s\napiKeyConfigured: %t\n",
+			settings.ProviderKind, settings.ProviderURL, settings.ModelsURL, config.CLIName(), keyErr == nil)
 		return nil
 	}
 	switch args[0] {
 	case "set-provider":
-		if len(args) != 2 {
-			return fmt.Errorf("usage: %s config set-provider <URL>", name)
+		if len(args) < 2 {
+			return fmt.Errorf("usage: %s config set-provider <URL> [--kind KIND] [--models-url URL]", name)
 		}
 		settings.ProviderURL = args[1]
+		for index := 2; index < len(args); index++ {
+			switch args[index] {
+			case "--kind":
+				if index+1 >= len(args) {
+					return errors.New("--kind requires a value")
+				}
+				index++
+				settings.ProviderKind = provider.Kind(args[index])
+			case "--models-url":
+				if index+1 >= len(args) {
+					return errors.New("--models-url requires a value")
+				}
+				index++
+				settings.ModelsURL = args[index]
+			default:
+				return fmt.Errorf("unknown option %q", args[index])
+			}
+		}
 	default:
 		return fmt.Errorf("unknown config command %q", args[0])
 	}
@@ -282,16 +304,18 @@ func runConfig(name string, settings config.Settings, args []string, streams IO)
 }
 
 func printHelp(w io.Writer, name string) {
-	fmt.Fprintf(w, `%s — launch coding agents through a LiteLLM provider
+	fmt.Fprintf(w, `%s — launch coding agents through a model provider
 
 Usage:
   %s launch <claude|codex|chatgpt|opencode|copilot> [--model MODEL] [--provider-url URL] [--yes] [-- args]
   %s launch chatgpt --restore [--yes]
   %s config show
-  %s config set-provider <URL>
+  %s config set-provider <URL> [--kind <litellm|openai-compatible>] [--models-url URL]
 
 Environment:
-  LITELLM_API_KEY  Provider key (preferred over Keychain)
-  LITELLM_BASE_URL Provider URL override
+  LAUNCHPAD_PROVIDER_API_KEY  Provider key (preferred over Keychain)
+  LAUNCHPAD_PROVIDER_URL      Provider URL override
+  LAUNCHPAD_PROVIDER_KIND     Provider type override
+  LAUNCHPAD_MODELS_URL        Model catalog URL override
 `, name, name, name, name, name)
 }

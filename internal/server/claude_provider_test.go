@@ -40,8 +40,8 @@ func TestClaudeProviderAdvertisesCompatibleRoutesAndRewritesModels(t *testing.T)
 
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("LITELLM_BASE_URL", upstream.URL)
-	t.Setenv("LITELLM_API_KEY", "upstream-secret")
+	t.Setenv("LAUNCHPAD_PROVIDER_URL", upstream.URL+"/v1")
+	t.Setenv("LAUNCHPAD_PROVIDER_API_KEY", "upstream-secret")
 	t.Setenv("LAUNCHPAD_DISABLE_KEYCHAIN", "1")
 	srv := &Server{
 		Store:        &store.Store{DBPath: home + "/db.sqlite"},

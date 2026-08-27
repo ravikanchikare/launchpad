@@ -181,7 +181,7 @@ func writeClaudeDesktopProfile(profile ClaudeDesktopProfile) error {
 	profileConfig["disableNonessentialTelemetry"] = true
 	profileConfig["autoModeEnabled"] = profile.AutoMode
 	// Claude discovers the current model catalog from the provider. Persisting a
-	// static list here prevents newly enabled LiteLLM models from appearing.
+	// static list here prevents newly enabled models from appearing.
 	delete(profileConfig, "inferenceModels")
 	if err := writeClaudeDesktopJSON(paths.profile, profileConfig); err != nil {
 		return fmt.Errorf("write Claude Desktop profile: %w", err)

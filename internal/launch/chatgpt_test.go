@@ -22,7 +22,7 @@ func TestConfigureAndRestoreChatGPTPreservesUserConfig(t *testing.T) {
 	if err := os.WriteFile(configPath, []byte(original), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := ConfigureChatGPT("https://provider.example", "cheap-model", "/tmp/launchpad"); err != nil {
+	if err := ConfigureChatGPT("https://provider.example/v1", "cheap-model", "/tmp/launchpad"); err != nil {
 		t.Fatal(err)
 	}
 	managed, err := os.ReadFile(configPath)

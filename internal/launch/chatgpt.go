@@ -31,7 +31,7 @@ type chatGPTRestoreState struct {
 	ModelCatalogJSON savedRootValue `json:"modelCatalogJson"`
 }
 
-func ConfigureChatGPT(providerURL, model, executable string) error {
+func ConfigureChatGPT(openAIBaseURL, model, executable string) error {
 	configPath, statePath, catalogPath, err := chatGPTPaths()
 	if err != nil {
 		return err
@@ -86,7 +86,7 @@ func ConfigureChatGPT(providerURL, model, executable string) error {
 	block := chatGPTManagedBegin + "\n" +
 		"[model_providers.launchpad]\n" +
 		"name = \"Launchpad\"\n" +
-		"base_url = " + strconv.Quote(strings.TrimRight(providerURL, "/")+"/v1") + "\n" +
+		"base_url = " + strconv.Quote(strings.TrimRight(openAIBaseURL, "/")) + "\n" +
 		"wire_api = \"responses\"\n\n" +
 		"[model_providers.launchpad.auth]\n" +
 		"command = " + strconv.Quote(executable) + "\n" +
